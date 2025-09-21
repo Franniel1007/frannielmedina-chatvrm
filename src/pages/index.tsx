@@ -63,6 +63,14 @@ export default function Home() {
   const [customErrorMessage, setCustomErrorMessage] = useState<string>('La API de OpenRouter está temporalmente caída. Inténtalo de nuevo más tarde.');
   const [hasCustomError, setHasCustomError] = useState(false);
   
+  // --- AÑADIR: Nuevo estado para el nombre del personaje ---
+  const [characterName, setCharacterName] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('characterName') || 'CHARACTER';
+    }
+    return 'CHARACTER';
+  });
+  
   useEffect(() => {
     if (window.localStorage.getItem("chatVRMParams")) {
       const params = JSON.parse(
@@ -87,6 +95,11 @@ export default function Home() {
     const savedCustomError = localStorage.getItem('customErrorMessage');
     if (savedCustomError) {
       setCustomErrorMessage(savedCustomError);
+    }
+    // --- Cargar el nombre del personaje desde localStorage ---
+    const savedCharacterName = localStorage.getItem('characterName');
+    if (savedCharacterName) {
+      setCharacterName(savedCharacterName);
     }
   }, []);
 
@@ -187,7 +200,6 @@ export default function Home() {
         localOpenRouterKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY!;
       }
 
-      // --- CAMBIO AQUÍ: elimina openAiKey de la llamada a la función ---
       const stream = await getChatResponseStream(processedMessages, localOpenRouterKey, customErrorMessage).catch(
         (e) => {
           console.error(e);
@@ -298,7 +310,14 @@ export default function Home() {
   
   const handleChangeCustomErrorMessage = (message: string) => {
     setCustomErrorMessage(message);
-    setHasCustomError(true);
+    window.localStorage.setItem('customErrorMessage', message);
+  };
+  
+  // --- Nuevo manejador para el nombre del personaje ---
+  const handleChangeCharacterName = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newName = event.target.value;
+    setCharacterName(newName);
+    localStorage.setItem('characterName', newName);
   };
 
   return (
@@ -339,6 +358,9 @@ export default function Home() {
         onChangeOpenRouterKey={handleOpenRouterKeyChange}
         customErrorMessage={customErrorMessage}
         onChangeCustomErrorMessage={handleChangeCustomErrorMessage}
+        // --- Pasar el nombre del personaje y su manejador a Menu ---
+        characterName={characterName}
+        onChangeCharacterName={handleChangeCharacterName}
       />
       <GitHubLink />
     </div>
