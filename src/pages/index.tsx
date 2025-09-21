@@ -10,7 +10,7 @@ import { speakCharacter } from "@/features/messages/speakCharacter";
 import { MessageInputContainer } from "@/components/messageInputContainer";
 import { SYSTEM_PROMPT } from "@/features/constants/systemPromptConstants";
 import { KoeiroParam, DEFAULT_KOEIRO_PARAM } from "@/features/constants/koeiroParam";
-import { getChatResponseStream } from "@/features/chat/openAiChat";
+import { getChatResponseStream } from "@/features/chat/openAichat";
 import { M_PLUS_2, Montserrat } from "next/font/google";
 import { Introduction } from "@/components/introduction";
 import { Menu } from "@/components/menu";
@@ -40,7 +40,6 @@ type LLMCallbackResult = {
   error?: string;
 };
 
-// Generar una URL de avatar a partir de un nombre de usuario
 const generateAvatarUrl = (username: string) => {
   const hash = md5(username.trim().toLowerCase());
   return `https://www.gravatar.com/avatar/${hash}?d=identicon&s=40`;
@@ -67,10 +66,10 @@ export default function Home() {
     }
     return '';
   });
-  
+
   const [customErrorMessage, setCustomErrorMessage] = useState<string>('La API de OpenRouter está temporalmente caída. Inténtalo de nuevo más tarde.');
   const [hasCustomError, setHasCustomError] = useState(false);
-  
+
   const [characterName, setCharacterName] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('characterName') || 'CHARACTER';
@@ -78,14 +77,13 @@ export default function Home() {
     return 'CHARACTER';
   });
 
-  // --- AÑADIR: Nuevo estado para el modelo de lenguaje ---
   const [selectedModel, setSelectedModel] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('selectedModel') || 'google/gemini-2.0-flash-exp:free';
     }
     return 'google/gemini-2.0-flash-exp:free';
   });
-  
+
   useEffect(() => {
     if (window.localStorage.getItem("chatVRMParams")) {
       const params = JSON.parse(
@@ -115,7 +113,6 @@ export default function Home() {
     if (savedCharacterName) {
       setCharacterName(savedCharacterName);
     }
-    // --- Cargar el modelo seleccionado desde localStorage ---
     const savedSelectedModel = localStorage.getItem('selectedModel');
     if (savedSelectedModel) {
       setSelectedModel(savedSelectedModel);
@@ -139,7 +136,7 @@ export default function Home() {
       document.body.style.backgroundImage = `url(${buildUrl("/bg-c.png")})`;
     }
   }, [backgroundImage]);
-  
+
   useEffect(() => {
     if (hasCustomError) {
       window.localStorage.setItem("customErrorMessage", customErrorMessage);
@@ -169,15 +166,15 @@ export default function Home() {
       setIsAISpeaking(true);
       try {
         await speakCharacter(
-          screenplay, 
-          elevenLabsKey, 
-          elevenLabsParam, 
-          viewer, 
+          screenplay,
+          elevenLabsKey,
+          elevenLabsParam,
+          viewer,
           () => {
             setIsPlayingAudio(true);
             console.log('audio playback started');
             onStart?.();
-          }, 
+          },
           () => {
             setIsPlayingAudio(false);
             console.log('audio playback completed');
@@ -200,7 +197,7 @@ export default function Home() {
 
       setChatProcessing(true);
       const logContent = displayMessage || newMessage;
-      
+
       const messageLog: Message[] = [
         ...chatLog,
         { role: "user", content: logContent },
@@ -227,7 +224,7 @@ export default function Home() {
           return null;
         }
       );
-      
+
       if (stream == null) {
         setChatProcessing(false);
         return;
@@ -257,7 +254,7 @@ export default function Home() {
             const sentence = sentenceMatch[0];
             sentences.push(sentence);
             receivedMessage = receivedMessage.slice(sentence.length).trimStart();
-            
+
             if (
               !sentence.replace(
                 /^[\s\[\(\{「［（【『〈《〔｛«‹〘〚〛〙›»〕》〉』】）］」\}\)\]]+$/g,
@@ -315,7 +312,7 @@ export default function Home() {
             error: 'System is busy processing previous message'
           };
         }
-        
+
         await handleSendChat(message);
         return {
           processed: true
@@ -335,19 +332,18 @@ export default function Home() {
     setOpenRouterKey(newKey);
     localStorage.setItem('openRouterKey', newKey);
   };
-  
+
   const handleChangeCustomErrorMessage = (message: string) => {
     setCustomErrorMessage(message);
     window.localStorage.setItem('customErrorMessage', message);
   };
-  
+
   const handleChangeCharacterName = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newName = event.target.value;
     setCharacterName(newName);
     localStorage.setItem('characterName', newName);
   };
 
-  // --- Manejador para el cambio de modelo ---
   const handleChangeSelectedModel = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const newModel = event.target.value;
     setSelectedModel(newModel);
@@ -394,7 +390,6 @@ export default function Home() {
         onChangeCustomErrorMessage={handleChangeCustomErrorMessage}
         characterName={characterName}
         onChangeCharacterName={handleChangeCharacterName}
-        // --- Pasar las nuevas propiedades a Menu ---
         selectedModel={selectedModel}
         onChangeSelectedModel={handleChangeSelectedModel}
       />
