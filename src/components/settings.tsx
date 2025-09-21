@@ -40,9 +40,11 @@ type Props = {
   onChatMessage: (message: string) => void;
   customErrorMessage: string;
   onChangeCustomErrorMessage: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  // --- AÑADIR: Propiedades para el nombre del personaje ---
   characterName: string;
   onChangeCharacterName: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  // --- AÑADIR: Propiedades para el modelo de lenguaje ---
+  selectedModel: string;
+  onChangeSelectedModel: (event: React.ChangeEvent<HTMLSelectElement>) => void;
 };
 
 export const Settings = ({
@@ -71,12 +73,20 @@ export const Settings = ({
   onChatMessage,
   customErrorMessage,
   onChangeCustomErrorMessage,
-  // --- Desestructurar el nombre del personaje ---
   characterName,
   onChangeCharacterName,
+  // --- Desestructurar el modelo seleccionado ---
+  selectedModel,
+  onChangeSelectedModel,
 }: Props) => {
   const [elevenLabsVoices, setElevenLabsVoices] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("general");
+
+  const FREE_MODELS = [
+    { value: "google/gemini-2.0-flash-exp:free", label: "Google Gemini 2.0 Flash (Gratis)" },
+    { value: "tngtech/deepseek-r1t-chimera:free", label: "DeepSeek Chimera (Gratis)" },
+    { value: "x-ai/grok-4-fast:free", label: "Grok 4 Fast (Gratis)" },
+  ];
 
   useEffect(() => {
     if (elevenLabsKey) {
@@ -180,6 +190,20 @@ export const Settings = ({
       case "characterSettings":
         return (
           <>
+            <div className="my-24">
+              <div className="my-16 typography-20 font-bold">Modelo de Lenguaje</div>
+              <select
+                value={selectedModel}
+                onChange={onChangeSelectedModel}
+                className="my-4 px-16 py-8 w-full h-40 bg-surface3 hover:bg-surface3-hover rounded-4 text-ellipsis"
+              >
+                {FREE_MODELS.map((model) => (
+                  <option key={model.value} value={model.value}>
+                    {model.label}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="my-40">
               <div className="my-8">
                 <div className="my-16 typography-20 font-bold">
@@ -402,4 +426,3 @@ export const Settings = ({
     </div>
   );
 };
-                    
