@@ -32,10 +32,13 @@ type Props = {
   openRouterKey: string;
   customErrorMessage: string;
   onChangeCustomErrorMessage: (message: string) => void;
-  // --- AÑADIR: Propiedades para el nombre del personaje ---
   characterName: string;
   onChangeCharacterName: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  // --- AÑADIR: Propiedades para el modelo de lenguaje ---
+  selectedModel: string;
+  onChangeSelectedModel: (event: React.ChangeEvent<HTMLSelectElement>) => void;
 };
+
 export const Menu = ({
   openAiKey,
   elevenLabsKey,
@@ -60,9 +63,11 @@ export const Menu = ({
   onChangeOpenRouterKey,
   customErrorMessage,
   onChangeCustomErrorMessage,
-  // --- Desestructurar el nombre del personaje ---
   characterName,
   onChangeCharacterName,
+  // --- Desestructurar el modelo de lenguaje ---
+  selectedModel,
+  onChangeSelectedModel,
 }: Props) => {
   const [showSettings, setShowSettings] = useState(false);
   const [showChatLog, setShowChatLog] = useState(false);
@@ -144,7 +149,7 @@ export const Menu = ({
   const handleBackgroundImageChange = (image: string) => {
     onChangeBackgroundImage(image);
   };
-  
+
   const handleChangeCustomErrorMessage = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       onChangeCustomErrorMessage(event.target.value);
@@ -196,7 +201,7 @@ export const Menu = ({
           onChangeElevenLabsVoice={handleElevenLabsVoiceChange}
           onChangeSystemPrompt={handleChangeSystemPrompt}
           onChangeChatLog={onChangeChatLog}
-          onChangeKoeiroParam={handleChangeKoeiroParam}
+          onChangeKoeiromapParam={handleChangeKoeiroParam}
           onClickOpenVrmFile={handleClickOpenVrmFile}
           onClickResetChatLog={handleClickResetChatLog}
           onClickResetSystemPrompt={handleClickResetSystemPrompt}
@@ -207,9 +212,11 @@ export const Menu = ({
           onChangeOpenRouterKey={onChangeOpenRouterKey}
           customErrorMessage={customErrorMessage}
           onChangeCustomErrorMessage={handleChangeCustomErrorMessage}
-          // --- Pasar las nuevas propiedades a Settings ---
           characterName={characterName}
           onChangeCharacterName={onChangeCharacterName}
+          // --- Pasar las nuevas propiedades a Settings ---
+          selectedModel={selectedModel}
+          onChangeSelectedModel={onChangeSelectedModel}
         />
       )}
       {!showChatLog && assistantMessage && (
