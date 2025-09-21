@@ -52,16 +52,18 @@ export default function Home() {
   const [backgroundImage, setBackgroundImage] = useState<string>('');
   const [restreamTokens, setRestreamTokens] = useState<any>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  // needed because AI speaking could involve multiple audios being played in sequence
   const [isAISpeaking, setIsAISpeaking] = useState(false);
   const [openRouterKey, setOpenRouterKey] = useState<string>(() => {
-    // Try to load from localStorage on initial render
     if (typeof window !== 'undefined') {
       return localStorage.getItem('openRouterKey') || '';
     }
     return '';
   });
-
+  
+  // --- AÑADE ESTOS DOS ESTADOS PARA EL MENSAJE DE ERROR PERSONALIZADO ---
+  const [customErrorMessage, setCustomErrorMessage] = useState<string>('La API de OpenRouter está temporalmente caída. Inténtalo de nuevo más tarde.');
+  const [hasCustomError, setHasCustomError] = useState(false);
+  
   useEffect(() => {
     if (window.localStorage.getItem("chatVRMParams")) {
       const params = JSON.parse(
@@ -75,7 +77,6 @@ export default function Home() {
       const key = window.localStorage.getItem("elevenLabsKey") as string;
       setElevenLabsKey(key);
     }
-    // load openrouter key from localStorage
     const savedOpenRouterKey = localStorage.getItem('openRouterKey');
     if (savedOpenRouterKey) {
       setOpenRouterKey(savedOpenRouterKey);
@@ -83,6 +84,11 @@ export default function Home() {
     const savedBackground = localStorage.getItem('backgroundImage');
     if (savedBackground) {
       setBackgroundImage(savedBackground);
+    }
+    // --- Carga el mensaje de error personalizado desde el almacenamiento local ---
+    const savedCustomError = localStorage.getItem('customErrorMessage');
+    if (savedCustomError) {
+      setCustomErrorMessage(savedCustomError);
     }
   }, []);
 
@@ -92,22 +98,25 @@ export default function Home() {
         "chatVRMParams",
         JSON.stringify({ systemPrompt, elevenLabsParam, chatLog })
       )
-
-      // store separately to be backward compatible with local storage data
       window.localStorage.setItem("elevenLabsKey", elevenLabsKey);
-    }
-    );
-  }, [systemPrompt, elevenLabsParam, chatLog]);
+    });
+  }, [systemPrompt, elevenLabsParam, chatLog, elevenLabsKey]);
 
   useEffect(() => {
     if (backgroundImage) {
       document.body.style.backgroundImage = `url(${backgroundImage})`;
-      // document.body.style.backgroundSize = 'cover';
-      // document.body.style.backgroundPosition = 'center';
     } else {
       document.body.style.backgroundImage = `url(${buildUrl("/bg-c.png")})`;
     }
   }, [backgroundImage]);
+  
+  // --- NUEVO EFECTO PARA GUARDAR EL MENSAJE PERSONALIZADO ---
+  useEffect(() => {
+    if (hasCustomError) {
+      window.localStorage.setItem("customErrorMessage", customErrorMessage);
+      setHasCustomError(false);
+    }
+  }, [customErrorMessage, hasCustomError]);
 
   const handleChangeChatLog = useCallback(
     (targetIndex: number, text: string) => {
@@ -120,9 +129,6 @@ export default function Home() {
     [chatLog]
   );
 
-  /**
-   * 文ごとに音声を直接でリクエストしながら再生する
-   */
   const handleSpeakAi = useCallback(
     async (
       screenplay: Screenplay,
@@ -131,7 +137,7 @@ export default function Home() {
       onStart?: () => void,
       onEnd?: () => void
     ) => {
-      setIsAISpeaking(true);  // Set speaking state before starting
+      setIsAISpeaking(true);
       try {
         await speakCharacter(
           screenplay, 
@@ -152,29 +158,24 @@ export default function Home() {
       } catch (error) {
         console.error('Error during AI speech:', error);
       } finally {
-        setIsAISpeaking(false);  // Ensure speaking state is reset even if there's an error
+        setIsAISpeaking(false);
       }
     },
     [viewer]
   );
 
-  /**
-   * アシスタントとの会話を行う
-   */
   const handleSendChat = useCallback(
     async (text: string) => {
       const newMessage = text;
       if (newMessage == null) return;
 
       setChatProcessing(true);
-      // Add user's message to chat log
       const messageLog: Message[] = [
         ...chatLog,
         { role: "user", content: newMessage },
       ];
       setChatLog(messageLog);
 
-      // Process messages through MessageMiddleOut
       const messageProcessor = new MessageMiddleOut();
       const processedMessages = messageProcessor.process([
         {
@@ -186,16 +187,16 @@ export default function Home() {
 
       let localOpenRouterKey = openRouterKey;
       if (!localOpenRouterKey) {
-        // fallback to free key for users to try things out
         localOpenRouterKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY!;
       }
 
-      const stream = await getChatResponseStream(processedMessages, openAiKey, localOpenRouterKey).catch(
+      const stream = await getChatResponseStream(processedMessages, openAiKey, localOpenRouterKey, customErrorMessage).catch(
         (e) => {
           console.error(e);
           return null;
         }
       );
+      
       if (stream == null) {
         setChatProcessing(false);
         return;
@@ -212,36 +213,20 @@ export default function Home() {
           if (done) break;
 
           receivedMessage += value;
-
-          // console.log('receivedMessage');
-          // console.log(receivedMessage);
-
-          // 返答内容のタグ部分の検出
           const tagMatch = receivedMessage.match(/^\[(.*?)\]/);
           if (tagMatch && tagMatch[0]) {
             tag = tagMatch[0];
             receivedMessage = receivedMessage.slice(tag.length);
-
-            console.log('tag:');
-            console.log(tag);
           }
 
-          // 返答を一単位で切り出して処理する
           const sentenceMatch = receivedMessage.match(
             /^(.+[。．！？\n.!?]|.{10,}[、,])/
           );
           if (sentenceMatch && sentenceMatch[0]) {
             const sentence = sentenceMatch[0];
             sentences.push(sentence);
-
-            console.log('sentence:');
-            console.log(sentence);
-
-            receivedMessage = receivedMessage
-              .slice(sentence.length)
-              .trimStart();
-
-            // 発話不要/不可能な文字列だった場合はスキップ
+            receivedMessage = receivedMessage.slice(sentence.length).trimStart();
+            
             if (
               !sentence.replace(
                 /^[\s\[\(\{「［（【『〈《〔｛«‹〘〚〛〙›»〕》〉』】）］」\}\)\]]+$/g,
@@ -254,8 +239,6 @@ export default function Home() {
             const aiText = `${tag} ${sentence}`;
             const aiTalks = textsToScreenplay([aiText], koeiroParam);
             aiTextLog += aiText;
-
-            // 文ごとに音声を生成 & 再生、返答を表示
             const currentAssistantMessage = sentences.join(" ");
             handleSpeakAi(aiTalks[0], elevenLabsKey, elevenLabsParam, () => {
               setAssistantMessage(currentAssistantMessage);
@@ -269,7 +252,6 @@ export default function Home() {
         reader.releaseLock();
       }
 
-      // アシスタントの返答をログに追加
       const messageLogAssistant: Message[] = [
         ...messageLog,
         { role: "assistant", content: aiTextLog },
@@ -278,14 +260,13 @@ export default function Home() {
       setChatLog(messageLogAssistant);
       setChatProcessing(false);
     },
-    [systemPrompt, chatLog, handleSpeakAi, openAiKey, elevenLabsKey, elevenLabsParam, openRouterKey]
+    [systemPrompt, chatLog, handleSpeakAi, openAiKey, elevenLabsKey, elevenLabsParam, openRouterKey, customErrorMessage]
   );
 
   const handleTokensUpdate = useCallback((tokens: any) => {
     setRestreamTokens(tokens);
   }, []);
 
-  // Set up global websocket handler
   useEffect(() => {
     websocketService.setLLMCallback(async (message: string): Promise<LLMCallbackResult> => {
       try {
@@ -315,6 +296,12 @@ export default function Home() {
     const newKey = event.target.value;
     setOpenRouterKey(newKey);
     localStorage.setItem('openRouterKey', newKey);
+  };
+  
+  // --- NUEVO MANEJADOR PARA EL MENSAJE DE ERROR PERSONALIZADO ---
+  const handleChangeCustomErrorMessage = (message: string) => {
+    setCustomErrorMessage(message);
+    setHasCustomError(true);
   };
 
   return (
@@ -353,6 +340,9 @@ export default function Home() {
         onTokensUpdate={handleTokensUpdate}
         onChatMessage={handleSendChat}
         onChangeOpenRouterKey={handleOpenRouterKeyChange}
+        // --- PASA LAS NUEVAS PROPIEDADES AL COMPONENTE MENU ---
+        customErrorMessage={customErrorMessage}
+        onChangeCustomErrorMessage={handleChangeCustomErrorMessage}
       />
       <GitHubLink />
     </div>
