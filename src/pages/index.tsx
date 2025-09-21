@@ -21,7 +21,6 @@ import { buildUrl } from "@/utils/buildUrl";
 import { websocketService } from '../services/websocketService';
 import { MessageMiddleOut } from "@/features/messages/messageMiddleOut";
 import { ChatMessage } from "@/components/restreamTokens"; // Importamos la interfaz ChatMessage
-import md5 from 'md5'; // Asegúrate de tener la librería 'md5' instalada: npm install md5
 
 const m_plus_2 = M_PLUS_2({
   variable: "--font-m-plus-2",
@@ -38,12 +37,6 @@ const montserrat = Montserrat({
 type LLMCallbackResult = {
   processed: boolean;
   error?: string;
-};
-
-// Generar una URL de avatar a partir de un nombre de usuario
-const generateAvatarUrl = (username: string) => {
-  const hash = md5(username.trim().toLowerCase());
-  return `https://www.gravatar.com/avatar/${hash}?d=identicon&s=40`;
 };
 
 export default function Home() {
@@ -181,11 +174,13 @@ export default function Home() {
   );
 
   const handleSendChat = useCallback(
+    // Aceptar un segundo argumento opcional para el mensaje de visualización
     async (text: string, displayMessage?: string) => {
       const newMessage = text;
       if (newMessage == null) return;
 
       setChatProcessing(true);
+      // Usar el displayMessage si está disponible, de lo contrario, usar el mensaje original
       const logContent = displayMessage || newMessage;
       
       const messageLog: Message[] = [
@@ -287,8 +282,7 @@ export default function Home() {
 
   const handleChatMessage = useCallback((message: ChatMessage) => {
     const textToAI = `Received these messages from your livestream, please respond: ${message.displayName}: ${message.text}`;
-    const avatarUrl = generateAvatarUrl(message.username);
-    const textToDisplay = `[${message.displayName}]<image>${avatarUrl}</image> ${message.text}`;
+    const textToDisplay = `[${message.displayName}]: ${message.text}`;
     handleSendChat(textToAI, textToDisplay);
   }, [handleSendChat]);
 
@@ -362,7 +356,7 @@ export default function Home() {
         onChangeSystemPrompt={setSystemPrompt}
         onChangeChatLog={handleChangeChatLog}
         onChangeElevenLabsParam={setElevenLabsParam}
-        onChangeKoeiroParam={setKoeiroParam}
+        onChangeKoeiromapParam={setKoeiroParam}
         handleClickResetChatLog={() => setChatLog([])}
         handleClickResetSystemPrompt={() => setSystemPrompt(SYSTEM_PROMPT)}
         backgroundImage={backgroundImage}
