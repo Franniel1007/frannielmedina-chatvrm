@@ -8,7 +8,8 @@ export async function getChatResponse(messages: Message[], apiKey: string) {
 export async function getChatResponseStream(
   messages: Message[],
   openRouterKey: string,
-  customErrorMessage: string
+  customErrorMessage: string,
+  selectedModel: string // --- AÑADIR: El modelo seleccionado ---
 ) {
   console.log('getChatResponseStream');
   console.log('messages');
@@ -18,7 +19,7 @@ export async function getChatResponseStream(
   if (!openRouterKey || openRouterKey.trim() === "") {
     const stream = new ReadableStream({
       start(controller) {
-        controller.enqueue("Necesitas la API de OpenRouter, ve a la Configuración > APIs");
+        controller.enqueue("Necesitas la API de OpenRouter ve a la Configuración > APIs");
         controller.close();
       },
     });
@@ -41,7 +42,8 @@ export async function getChatResponseStream(
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            "model": "google/gemini-2.0-flash-exp:free",
+            // --- USAR: El modelo seleccionado ---
+            "model": selectedModel, 
             "messages": messages,
             "temperature": 0.7,
             "max_tokens": 200,
