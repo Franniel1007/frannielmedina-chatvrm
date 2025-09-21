@@ -12,7 +12,7 @@ import {
 import { Link } from "./link";
 import { getVoices } from "@/features/elevenlabs/elevenlabs";
 import { ElevenLabsParam } from "@/features/constants/elevenLabsParam";
-import { RestreamTokens } from "./restreamTokens";
+import { RestreamTokens, ChatMessage } from "./restreamTokens";
 
 type Props = {
   openAiKey: string;
@@ -35,14 +35,13 @@ type Props = {
   onClickResetSystemPrompt: () => void;
   backgroundImage: string;
   onChangeBackgroundImage: (image: string) => void;
-  onRestreamTokensUpdate?: (tokens: { access_token: string; refresh_token: string; } | null) => void;
+  onRestreamTokensUpdate?: (tokens: { access_token: string; refresh_token: string } | null) => void;
   onTokensUpdate: (tokens: any) => void;
-  onChatMessage: (message: string) => void;
+  onChatMessage: (message: ChatMessage) => void; // <-- tipo corregido
   customErrorMessage: string;
   onChangeCustomErrorMessage: (event: React.ChangeEvent<HTMLInputElement>) => void;
   characterName: string;
   onChangeCharacterName: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  // --- AÑADIR: Propiedades para el modelo de lenguaje ---
   selectedModel: string;
   onChangeSelectedModel: (event: React.ChangeEvent<HTMLSelectElement>) => void;
 };
@@ -75,7 +74,6 @@ export const Settings = ({
   onChangeCustomErrorMessage,
   characterName,
   onChangeCharacterName,
-  // --- Desestructurar el modelo seleccionado ---
   selectedModel,
   onChangeSelectedModel,
 }: Props) => {
@@ -91,8 +89,7 @@ export const Settings = ({
   useEffect(() => {
     if (elevenLabsKey) {
       getVoices(elevenLabsKey).then((data) => {
-        const voices = data.voices;
-        setElevenLabsVoices(voices);
+        setElevenLabsVoices(data.voices);
       });
     }
   }, [elevenLabsKey]);
@@ -128,7 +125,7 @@ export const Settings = ({
                 value={characterName}
                 onChange={onChangeCharacterName}
                 className="my-4 px-16 py-8 w-full h-40 bg-surface3 hover:bg-surface3-hover rounded-4 text-ellipsis"
-              ></input>
+              />
               <div className="text-sm text-gray-600">
                 Cambia el nombre que aparece en el cuadro de diálogo del personaje.
               </div>
@@ -141,9 +138,9 @@ export const Settings = ({
                 value={customErrorMessage}
                 onChange={onChangeCustomErrorMessage}
                 className="my-4 px-16 py-8 w-full h-40 bg-surface3 hover:bg-surface3-hover rounded-4 text-ellipsis"
-              ></input>
+              />
               <div className="text-sm text-gray-600">
-                Este mensaje se mostrará si la API de OpenRouter no está disponible debido a una caída del servicio.
+                Este mensaje se mostrará si la API de OpenRouter no está disponible.
               </div>
             </div>
           </>
@@ -159,13 +156,10 @@ export const Settings = ({
                 value={openRouterKey}
                 onChange={onChangeOpenRouterKey}
                 className="my-4 px-16 py-8 w-full h-40 bg-surface3 hover:bg-surface3-hover rounded-4 text-ellipsis"
-              ></input>
+              />
               <div>
                 Introduce tu clave de API de OpenRouter para un acceso personalizado. Puedes obtener una clave de API en el&nbsp;
-                <Link
-                  url="https://openrouter.ai/"
-                  label="sitio web de OpenRouter"
-                />. Por defecto, esta aplicación utiliza su propia clave de API de OpenRouter para que la gente pueda probar las cosas fácilmente, pero es posible que se agoten los créditos y sea necesario recargarlos.
+                <Link url="https://openrouter.ai/" label="sitio web de OpenRouter" />.
               </div>
             </div>
             <div className="my-24">
@@ -176,13 +170,10 @@ export const Settings = ({
                 value={elevenLabsKey}
                 onChange={onChangeElevenLabsKey}
                 className="my-4 px-16 py-8 w-full h-40 bg-surface3 hover:bg-surface3-hover rounded-4 text-ellipsis"
-              ></input>
+              />
               <div>
                 Introduce tu clave de API de ElevenLabs para habilitar la conversión de texto a voz. Puedes obtener una clave de API en el&nbsp;
-                <Link
-                  url="https://beta.elevenlabs.io/"
-                  label="sitio web de ElevenLabs"
-                />.
+                <Link url="https://beta.elevenlabs.io/" label="sitio web de ElevenLabs" />.
               </div>
             </div>
           </>
@@ -198,53 +189,37 @@ export const Settings = ({
                 className="my-4 px-16 py-8 w-full h-40 bg-surface3 hover:bg-surface3-hover rounded-4 text-ellipsis"
               >
                 {FREE_MODELS.map((model) => (
-                  <option key={model.value} value={model.value}>
-                    {model.label}
-                  </option>
+                  <option key={model.value} value={model.value}>{model.label}</option>
                 ))}
               </select>
             </div>
             <div className="my-40">
               <div className="my-8">
-                <div className="my-16 typography-20 font-bold">
-                  Configuración del personaje (Indicador de sistema)
-                </div>
-                <TextButton onClick={onClickResetSystemPrompt}>
-                  Restablecer configuración del personaje
-                </TextButton>
+                <div className="my-16 typography-20 font-bold">Configuración del personaje</div>
+                <TextButton onClick={onClickResetSystemPrompt}>Restablecer configuración del personaje</TextButton>
               </div>
               <textarea
                 value={systemPrompt}
                 onChange={onChangeSystemPrompt}
-                className="px-16 py-8  bg-surface1 hover:bg-surface1-hover h-168 rounded-8 w-full"
-              ></textarea>
+                className="px-16 py-8 bg-surface1 hover:bg-surface1-hover h-168 rounded-8 w-full"
+              />
             </div>
             {chatLog.length > 0 && (
               <div className="my-40">
                 <div className="my-8 grid-cols-2">
                   <div className="my-16 typography-20 font-bold">Historial de conversaciones</div>
-                  <TextButton onClick={onClickResetChatLog}>
-                    Restablecer historial de conversaciones
-                  </TextButton>
+                  <TextButton onClick={onClickResetChatLog}>Restablecer historial de conversaciones</TextButton>
                 </div>
                 <div className="my-8">
                   {chatLog.map((value, index) => (
-                    <div
-                      key={index}
-                      className="my-8 grid grid-flow-col  grid-cols-[min-content_1fr] gap-x-fixed"
-                    >
-                      <div className="w-[64px] py-8">
-                        {value.role === "assistant" ? "Personaje" : "Tú"}
-                      </div>
+                    <div key={index} className="my-8 grid grid-flow-col grid-cols-[min-content_1fr] gap-x-fixed">
+                      <div className="w-[64px] py-8">{value.role === "assistant" ? "Personaje" : "Tú"}</div>
                       <input
-                        key={index}
                         className="bg-surface1 hover:bg-surface1-hover rounded-8 w-full px-16 py-8"
                         type="text"
                         value={value.content}
-                        onChange={(event) => {
-                          onChangeChatLog(index, event.target.value);
-                        }}
-                      ></input>
+                        onChange={(event) => onChangeChatLog(index, event.target.value)}
+                      />
                     </div>
                   ))}
                 </div>
@@ -256,22 +231,12 @@ export const Settings = ({
         return (
           <>
             <div className="my-40">
-              <div className="my-16 typography-20 font-bold">
-                Selección de voz
-              </div>
-              <div className="my-16">
-                Selecciona entre las voces de ElevenLabs (incluyendo voces personalizadas):
-              </div>
+              <div className="my-16 typography-20 font-bold">Selección de voz</div>
+              <div className="my-16">Selecciona entre las voces de ElevenLabs:</div>
               <div className="my-8">
-                <select className="h-40 px-8"
-                  id="select-dropdown"
-                  onChange={onChangeElevenLabsVoice}
-                  value={elevenLabsParam.voiceId}
-                >
+                <select className="h-40 px-8" id="select-dropdown" onChange={onChangeElevenLabsVoice} value={elevenLabsParam.voiceId}>
                   {elevenLabsVoices.map((voice, index) => (
-                    <option key={index} value={voice.voice_id}>
-                      {voice.name}
-                    </option>
+                    <option key={index} value={voice.voice_id}>{voice.name}</option>
                   ))}
                 </select>
               </div>
@@ -282,38 +247,21 @@ export const Settings = ({
         return (
           <>
             <div className="my-40">
-              <div className="my-16 typography-20 font-bold">
-                Modelo del personaje
-              </div>
-              <div className="my-8">
-                <TextButton onClick={onClickOpenVrmFile}>Abrir VRM</TextButton>
-              </div>
+              <div className="my-16 typography-20 font-bold">Modelo del personaje</div>
+              <div className="my-8"><TextButton onClick={onClickOpenVrmFile}>Abrir VRM</TextButton></div>
             </div>
             <div className="my-40">
-              <div className="my-16 typography-20 font-bold">
-                Imagen de fondo
-              </div>
+              <div className="my-16 typography-20 font-bold">Imagen de fondo</div>
               <div className="my-16">Elige una imagen de fondo personalizada:</div>
               <div className="my-8 flex flex-col gap-4">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="my-4"
-                />
+                <input type="file" accept="image/*" onChange={handleImageUpload} className="my-4" />
                 {backgroundImage && (
                   <div className="flex flex-col gap-4">
                     <div className="my-8">
-                      <img
-                        src={backgroundImage}
-                        alt="Vista previa del fondo"
-                        className="max-w-[200px] rounded-4"
-                      />
+                      <img src={backgroundImage} alt="Vista previa del fondo" className="max-w-[200px] rounded-4" />
                     </div>
                     <div className="my-8">
-                      <TextButton onClick={handleRemoveBackground}>
-                        Eliminar fondo
-                      </TextButton>
+                      <TextButton onClick={handleRemoveBackground}>Eliminar fondo</TextButton>
                     </div>
                   </div>
                 )}
@@ -327,31 +275,25 @@ export const Settings = ({
       case "streaming":
         return (
           <div className="my-40">
-            <div className="my-16 typography-20 font-bold">
-              Transmisión
-            </div>
-            <p>
-              Esta sección lee automáticamente los tokens de Restream desde `restreamTokens.tsx`. No se requiere una implementación directa aquí.
-            </p>
+            <div className="my-16 typography-20 font-bold">Transmisión</div>
+            <p>Esta sección lee automáticamente los tokens de Restream desde `restreamTokens.tsx`. No se requiere implementación directa aquí.</p>
             <RestreamTokens onTokensUpdate={onTokensUpdate} onChatMessage={onChatMessage} />
           </div>
         );
       case "about":
         return (
           <div className="my-40">
-            <div className="my-16 typography-20 font-bold">
-              Acerca de
-            </div>
+            <div className="my-16 typography-20 font-bold">Acerca de</div>
             <div className="my-8">
               <p>ChatVRM de FrannielMedina</p>
               <p>v1.0.0</p>
             </div>
             <div className="my-8">
-              <p>Esta es una versión mejorada de ChatVRM proveniente de un fork a partir de <a href="https://github.com/zoan37/ChatVRM" target="_blank" rel="noopener noreferrer">https://github.com/zoan37/ChatVRM</a></p>
+              <p>Versión mejorada basada en <a href="https://github.com/zoan37/ChatVRM" target="_blank" rel="noopener noreferrer">ChatVRM original</a></p>
             </div>
             <div className="my-8">
               <p>©2025 Franniel Medina</p>
-              <p><a href="https://beacons.ai/frannielmedinatv" target="_blank" rel="noopener noreferrer">https://beacons.ai/frannielmedinatv</a></p>
+              <p><a href="https://beacons.ai/frannielmedinatv" target="_blank" rel="noopener noreferrer">beacons.ai/frannielmedinatv</a></p>
             </div>
           </div>
         );
@@ -363,64 +305,25 @@ export const Settings = ({
   return (
     <div className="absolute z-40 w-full h-full bg-white/80 backdrop-blur ">
       <div className="absolute m-24">
-        <IconButton
-          iconName="24/Close"
-          isProcessing={false}
-          onClick={onClickClose}
-        ></IconButton>
+        <IconButton iconName="24/Close" isProcessing={false} onClick={onClickClose} />
       </div>
       <div className="max-h-full overflow-auto">
         <div className="text-text1 max-w-3xl mx-auto px-24 py-64 ">
           <div className="my-24 typography-32 font-bold">Configuración</div>
 
           <div className="flex flex-wrap border-b border-gray-300">
-            <button
-              className={`flex items-center gap-2 py-2 px-4 ${activeTab === "general" ? "border-b-2 border-blue-500 font-bold" : ""}`}
-              onClick={() => setActiveTab("general")}
-            >
-              <span role="img" aria-label="General">⚙️</span> General
-            </button>
-            <button
-              className={`flex items-center gap-2 py-2 px-4 ${activeTab === "api" ? "border-b-2 border-blue-500 font-bold" : ""}`}
-              onClick={() => setActiveTab("api")}
-            >
-              <span role="img" aria-label="APIs">🔧</span> APIs
-            </button>
-            <button
-              className={`flex items-center gap-2 py-2 px-4 ${activeTab === "characterSettings" ? "border-b-2 border-blue-500 font-bold" : ""}`}
-              onClick={() => setActiveTab("characterSettings")}
-            >
-              <span role="img" aria-label="Configuración del personaje">👤</span> Configuración del personaje
-            </button>
-            <button
-              className={`flex items-center gap-2 py-2 px-4 ${activeTab === "voice" ? "border-b-2 border-blue-500 font-bold" : ""}`}
-              onClick={() => setActiveTab("voice")}
-            >
-              <span role="img" aria-label="Voz">🎤</span> Voz
-            </button>
-            <button
-              className={`flex items-center gap-2 py-2 px-4 ${activeTab === "personalization" ? "border-b-2 border-blue-500 font-bold" : ""}`}
-              onClick={() => setActiveTab("personalization")}
-            >
-              <span role="img" aria-label="Personaje y personalización">🎨</span> Personaje y personalización
-            </button>
-            <button
-              className={`flex items-center gap-2 py-2 px-4 ${activeTab === "streaming" ? "border-b-2 border-blue-500 font-bold" : ""}`}
-              onClick={() => setActiveTab("streaming")}
-            >
-              <span role="img" aria-label="Transmisión">📡</span> Transmisión
-            </button>
-            <button
-              className={`flex items-center gap-2 py-2 px-4 ${activeTab === "about" ? "border-b-2 border-blue-500 font-bold" : ""}`}
-              onClick={() => setActiveTab("about")}
-            >
-              <span role="img" aria-label="Acerca de">ℹ️</span> Acerca de
-            </button>
+            {["general","api","characterSettings","voice","personalization","streaming","about"].map(tab => (
+              <button
+                key={tab}
+                className={`flex items-center gap-2 py-2 px-4 ${activeTab === tab ? "border-b-2 border-blue-500 font-bold" : ""}`}
+                onClick={() => setActiveTab(tab)}
+              >
+                <span role="img" aria-label={tab}>{tab === "general" ? "⚙️" : tab === "api" ? "🔧" : tab === "characterSettings" ? "👤" : tab === "voice" ? "🎤" : tab === "personalization" ? "🎨" : tab === "streaming" ? "📡" : "ℹ️"}</span> {tab === "characterSettings" ? "Configuración del personaje" : tab === "personalization" ? "Personaje y personalización" : tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
           </div>
 
-          <div className="mt-8">
-            {renderContent()}
-          </div>
+          <div className="mt-8">{renderContent()}</div>
         </div>
       </div>
     </div>
