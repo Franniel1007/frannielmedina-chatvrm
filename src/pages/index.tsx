@@ -60,7 +60,6 @@ export default function Home() {
     return '';
   });
   
-  // --- AÑADE ESTOS DOS ESTADOS PARA EL MENSAJE DE ERROR PERSONALIZADO ---
   const [customErrorMessage, setCustomErrorMessage] = useState<string>('La API de OpenRouter está temporalmente caída. Inténtalo de nuevo más tarde.');
   const [hasCustomError, setHasCustomError] = useState(false);
   
@@ -85,7 +84,6 @@ export default function Home() {
     if (savedBackground) {
       setBackgroundImage(savedBackground);
     }
-    // --- Carga el mensaje de error personalizado desde el almacenamiento local ---
     const savedCustomError = localStorage.getItem('customErrorMessage');
     if (savedCustomError) {
       setCustomErrorMessage(savedCustomError);
@@ -110,7 +108,6 @@ export default function Home() {
     }
   }, [backgroundImage]);
   
-  // --- NUEVO EFECTO PARA GUARDAR EL MENSAJE PERSONALIZADO ---
   useEffect(() => {
     if (hasCustomError) {
       window.localStorage.setItem("customErrorMessage", customErrorMessage);
@@ -190,7 +187,8 @@ export default function Home() {
         localOpenRouterKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY!;
       }
 
-      const stream = await getChatResponseStream(processedMessages, openAiKey, localOpenRouterKey, customErrorMessage).catch(
+      // --- CAMBIO AQUÍ: elimina openAiKey de la llamada a la función ---
+      const stream = await getChatResponseStream(processedMessages, localOpenRouterKey, customErrorMessage).catch(
         (e) => {
           console.error(e);
           return null;
@@ -260,7 +258,7 @@ export default function Home() {
       setChatLog(messageLogAssistant);
       setChatProcessing(false);
     },
-    [systemPrompt, chatLog, handleSpeakAi, openAiKey, elevenLabsKey, elevenLabsParam, openRouterKey, customErrorMessage]
+    [systemPrompt, chatLog, handleSpeakAi, elevenLabsKey, elevenLabsParam, openRouterKey, customErrorMessage]
   );
 
   const handleTokensUpdate = useCallback((tokens: any) => {
@@ -298,7 +296,6 @@ export default function Home() {
     localStorage.setItem('openRouterKey', newKey);
   };
   
-  // --- NUEVO MANEJADOR PARA EL MENSAJE DE ERROR PERSONALIZADO ---
   const handleChangeCustomErrorMessage = (message: string) => {
     setCustomErrorMessage(message);
     setHasCustomError(true);
@@ -340,7 +337,6 @@ export default function Home() {
         onTokensUpdate={handleTokensUpdate}
         onChatMessage={handleSendChat}
         onChangeOpenRouterKey={handleOpenRouterKeyChange}
-        // --- PASA LAS NUEVAS PROPIEDADES AL COMPONENTE MENU ---
         customErrorMessage={customErrorMessage}
         onChangeCustomErrorMessage={handleChangeCustomErrorMessage}
       />
