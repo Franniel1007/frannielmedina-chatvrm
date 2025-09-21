@@ -7,7 +7,7 @@ import { speakCharacter } from "@/features/messages/speakCharacter";
 import { MessageInputContainer } from "@/components/messageInputContainer";
 import { SYSTEM_PROMPT } from "@/features/constants/systemPromptConstants";
 import { KoeiroParam, DEFAULT_KOEIRO_PARAM } from "@/features/constants/koeiroParam";
-import { getChatResponseStream } from "@/features/chat/openAiChat"; // ✅ Corregido
+import { getChatResponseStream } from "@/features/chat/openAiChat";
 import { M_PLUS_2, Montserrat } from "next/font/google";
 import { Introduction } from "@/components/introduction";
 import { Menu } from "@/components/menu";
@@ -18,7 +18,6 @@ import { buildUrl } from "@/utils/buildUrl";
 import { websocketService } from "@/services/websocketService";
 import { MessageMiddleOut } from "@/features/messages/messageMiddleOut";
 import { ChatMessage } from "@/components/restreamTokens";
-import md5 from "md5";
 
 const m_plus_2 = M_PLUS_2({ variable: "--font-m-plus-2", display: "swap", preload: false });
 const montserrat = Montserrat({ variable: "--font-montserrat", display: "swap", subsets: ["latin"] });
@@ -28,8 +27,16 @@ type LLMCallbackResult = {
   error?: string;
 };
 
-const generateAvatarUrl = (username: string) => {
-  const hash = md5(username.trim().toLowerCase());
+// ✅ Función para generar hash MD5 en el navegador
+async function md5Browser(message: string): Promise<string> {
+  const msgBuffer = new TextEncoder().encode(message.trim().toLowerCase());
+  const hashBuffer = await crypto.subtle.digest("MD5", msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+const generateAvatarUrl = async (username: string) => {
+  const hash = await md5Browser(username);
   return `https://www.gravatar.com/avatar/${hash}?d=identicon&s=40`;
 };
 
@@ -244,8 +251,8 @@ export default function Home() {
         onChangeBackgroundImage={setBackgroundImage}
         onTokensUpdate={handleTokensUpdate}
         onChatMessage={handleChatMessage}
-        customDownMessage={customErrorMessage}
-        onChangeCustomDownMessage={setCustomErrorMessage}
+        customErrorMessage={customErrorMessage}
+        onChangeCustomErrorMessage={setCustomErrorMessage}
         characterName={characterName}
         onChangeCharacterName={(e) => { setCharacterName(e.target.value); localStorage.setItem('characterName', e.target.value); }}
         selectedModel={selectedModel}
