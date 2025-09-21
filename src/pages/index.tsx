@@ -10,7 +10,8 @@ import { speakCharacter } from "@/features/messages/speakCharacter";
 import { MessageInputContainer } from "@/components/messageInputContainer";
 import { SYSTEM_PROMPT } from "@/features/constants/systemPromptConstants";
 import { KoeiroParam, DEFAULT_KOEIRO_PARAM } from "@/features/constants/koeiroParam";
-// Ruta de importación corregida
+// VERIFICAR Y CORREGIR ESTA RUTA SEGÚN TUS NOMBRES DE CARPETAS Y ARCHIVOS (MAYÚSCULAS/MINÚSCULAS)
+// Por ejemplo, si tu carpeta es "features", usa "features". Si es "Features", usa "Features".
 import { getChatResponseStream } from "../features/chat/openAichat";
 import { M_PLUS_2, Montserrat } from "next/font/google";
 import { Introduction } from "@/components/introduction";
@@ -397,4 +398,5 @@ export default function Home() {
       <GitHubLink />
     </div>
   );
-}
+           }
+      
