@@ -20,6 +20,8 @@ import { ElevenLabsParam, DEFAULT_ELEVEN_LABS_PARAM } from "@/features/constants
 import { buildUrl } from "@/utils/buildUrl";
 import { websocketService } from '../services/websocketService';
 import { MessageMiddleOut } from "@/features/messages/messageMiddleOut";
+import { ChatMessage } from "@/components/restreamTokens";
+import md5 from 'md5';
 
 const m_plus_2 = M_PLUS_2({
   variable: "--font-m-plus-2",
@@ -36,6 +38,12 @@ const montserrat = Montserrat({
 type LLMCallbackResult = {
   processed: boolean;
   error?: string;
+};
+
+// Generar una URL de avatar a partir de un nombre de usuario
+const generateAvatarUrl = (username: string) => {
+  const hash = md5(username.trim().toLowerCase());
+  return `https://www.gravatar.com/avatar/${hash}?d=identicon&s=40`;
 };
 
 export default function Home() {
@@ -63,12 +71,19 @@ export default function Home() {
   const [customErrorMessage, setCustomErrorMessage] = useState<string>('La API de OpenRouter está temporalmente caída. Inténtalo de nuevo más tarde.');
   const [hasCustomError, setHasCustomError] = useState(false);
   
-  // --- AÑADIR: Nuevo estado para el nombre del personaje ---
   const [characterName, setCharacterName] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('characterName') || 'CHARACTER';
     }
     return 'CHARACTER';
+  });
+
+  // --- AÑADIR: Nuevo estado para el modelo de lenguaje ---
+  const [selectedModel, setSelectedModel] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('selectedModel') || 'google/gemini-2.0-flash-exp:free';
+    }
+    return 'google/gemini-2.0-flash-exp:free';
   });
   
   useEffect(() => {
@@ -96,10 +111,14 @@ export default function Home() {
     if (savedCustomError) {
       setCustomErrorMessage(savedCustomError);
     }
-    // --- Cargar el nombre del personaje desde localStorage ---
     const savedCharacterName = localStorage.getItem('characterName');
     if (savedCharacterName) {
       setCharacterName(savedCharacterName);
+    }
+    // --- Cargar el modelo seleccionado desde localStorage ---
+    const savedSelectedModel = localStorage.getItem('selectedModel');
+    if (savedSelectedModel) {
+      setSelectedModel(savedSelectedModel);
     }
   }, []);
 
@@ -175,14 +194,16 @@ export default function Home() {
   );
 
   const handleSendChat = useCallback(
-    async (text: string) => {
+    async (text: string, displayMessage?: string) => {
       const newMessage = text;
       if (newMessage == null) return;
 
       setChatProcessing(true);
+      const logContent = displayMessage || newMessage;
+      
       const messageLog: Message[] = [
         ...chatLog,
-        { role: "user", content: newMessage },
+        { role: "user", content: logContent },
       ];
       setChatLog(messageLog);
 
@@ -200,7 +221,7 @@ export default function Home() {
         localOpenRouterKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY!;
       }
 
-      const stream = await getChatResponseStream(processedMessages, localOpenRouterKey, customErrorMessage).catch(
+      const stream = await getChatResponseStream(processedMessages, localOpenRouterKey, customErrorMessage, selectedModel).catch(
         (e) => {
           console.error(e);
           return null;
@@ -270,12 +291,19 @@ export default function Home() {
       setChatLog(messageLogAssistant);
       setChatProcessing(false);
     },
-    [systemPrompt, chatLog, handleSpeakAi, elevenLabsKey, elevenLabsParam, openRouterKey, customErrorMessage]
+    [systemPrompt, chatLog, handleSpeakAi, elevenLabsKey, elevenLabsParam, openRouterKey, customErrorMessage, selectedModel]
   );
 
   const handleTokensUpdate = useCallback((tokens: any) => {
     setRestreamTokens(tokens);
   }, []);
+
+  const handleChatMessage = useCallback((message: ChatMessage) => {
+    const textToAI = `Received these messages from your livestream, please respond: ${message.displayName}: ${message.text}`;
+    const avatarUrl = generateAvatarUrl(message.username);
+    const textToDisplay = `[${message.displayName}]<image>${avatarUrl}</image> ${message.text}`;
+    handleSendChat(textToAI, textToDisplay);
+  }, [handleSendChat]);
 
   useEffect(() => {
     websocketService.setLLMCallback(async (message: string): Promise<LLMCallbackResult> => {
@@ -313,11 +341,17 @@ export default function Home() {
     window.localStorage.setItem('customErrorMessage', message);
   };
   
-  // --- Nuevo manejador para el nombre del personaje ---
   const handleChangeCharacterName = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newName = event.target.value;
     setCharacterName(newName);
     localStorage.setItem('characterName', newName);
+  };
+
+  // --- Manejador para el cambio de modelo ---
+  const handleChangeSelectedModel = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const newModel = event.target.value;
+    setSelectedModel(newModel);
+    localStorage.setItem('selectedModel', newModel);
   };
 
   return (
@@ -354,13 +388,15 @@ export default function Home() {
         backgroundImage={backgroundImage}
         onChangeBackgroundImage={setBackgroundImage}
         onTokensUpdate={handleTokensUpdate}
-        onChatMessage={handleSendChat}
+        onChatMessage={handleChatMessage}
         onChangeOpenRouterKey={handleOpenRouterKeyChange}
         customErrorMessage={customErrorMessage}
         onChangeCustomErrorMessage={handleChangeCustomErrorMessage}
-        // --- Pasar el nombre del personaje y su manejador a Menu ---
         characterName={characterName}
         onChangeCharacterName={handleChangeCharacterName}
+        // --- Pasar las nuevas propiedades a Menu ---
+        selectedModel={selectedModel}
+        onChangeSelectedModel={handleChangeSelectedModel}
       />
       <GitHubLink />
     </div>
