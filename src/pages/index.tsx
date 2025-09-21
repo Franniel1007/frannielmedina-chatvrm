@@ -1,5 +1,5 @@
 // src/pages/index.tsx
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState, ChangeEvent } from "react";
 import VrmViewer from "@/components/vrmViewer";
 import { ViewerContext } from "@/features/vrmViewer/viewerContext";
 import { Message, textsToScreenplay, Screenplay } from "@/features/messages/messages";
@@ -27,19 +27,6 @@ type LLMCallbackResult = {
   error?: string;
 };
 
-// ✅ Función para generar hash MD5 en el navegador
-async function md5Browser(message: string): Promise<string> {
-  const msgBuffer = new TextEncoder().encode(message.trim().toLowerCase());
-  const hashBuffer = await crypto.subtle.digest("MD5", msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-}
-
-const generateAvatarUrl = async (username: string) => {
-  const hash = await md5Browser(username);
-  return `https://www.gravatar.com/avatar/${hash}?d=identicon&s=40`;
-};
-
 export default function Home() {
   const { viewer } = useContext(ViewerContext);
 
@@ -55,7 +42,7 @@ export default function Home() {
   const [restreamTokens, setRestreamTokens] = useState<any>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [isAISpeaking, setIsAISpeaking] = useState(false);
-  const [openRouterKey, setOpenRouterKey] = useState<string>(() =>
+  const [openRouterKey, setOpenRouterKey] = useState<string>(
     typeof window !== "undefined" ? localStorage.getItem("openRouterKey") || "" : ""
   );
   const [customErrorMessage, setCustomErrorMessage] = useState<string>(
@@ -251,12 +238,13 @@ export default function Home() {
         onChangeBackgroundImage={setBackgroundImage}
         onTokensUpdate={handleTokensUpdate}
         onChatMessage={handleChatMessage}
+        onChangeOpenRouterKey={(e: ChangeEvent<HTMLInputElement>) => { setOpenRouterKey(e.target.value); localStorage.setItem('openRouterKey', e.target.value); }}
         customErrorMessage={customErrorMessage}
         onChangeCustomErrorMessage={setCustomErrorMessage}
         characterName={characterName}
-        onChangeCharacterName={(e) => { setCharacterName(e.target.value); localStorage.setItem('characterName', e.target.value); }}
+        onChangeCharacterName={(e: ChangeEvent<HTMLInputElement>) => { setCharacterName(e.target.value); localStorage.setItem('characterName', e.target.value); }}
         selectedModel={selectedModel}
-        onChangeSelectedModel={(e) => { setSelectedModel(e.target.value); localStorage.setItem('selectedModel', e.target.value); }}
+        onChangeSelectedModel={(e: ChangeEvent<HTMLSelectElement>) => { setSelectedModel(e.target.value); localStorage.setItem('selectedModel', e.target.value); }}
       />
       <GitHubLink />
     </div>
