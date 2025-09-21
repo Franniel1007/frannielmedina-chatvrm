@@ -34,7 +34,6 @@ type Props = {
   onChangeCustomErrorMessage: (message: string) => void;
   characterName: string;
   onChangeCharacterName: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  // --- AÑADIR: Propiedades para el modelo de lenguaje ---
   selectedModel: string;
   onChangeSelectedModel: (event: React.ChangeEvent<HTMLSelectElement>) => void;
 };
@@ -65,7 +64,6 @@ export const Menu = ({
   onChangeCustomErrorMessage,
   characterName,
   onChangeCharacterName,
-  // --- Desestructurar el modelo de lenguaje ---
   selectedModel,
   onChangeSelectedModel,
 }: Props) => {
@@ -201,7 +199,8 @@ export const Menu = ({
           onChangeElevenLabsVoice={handleElevenLabsVoiceChange}
           onChangeSystemPrompt={handleChangeSystemPrompt}
           onChangeChatLog={onChangeChatLog}
-          onChangeKoeiromapParam={handleChangeKoeiroParam}
+          // --- ERROR CORREGIDO: Cambiado a onChangeKoeiroParam ---
+          onChangeKoeiroParam={handleChangeKoeiroParam}
           onClickOpenVrmFile={handleClickOpenVrmFile}
           onClickResetChatLog={handleClickResetChatLog}
           onClickResetSystemPrompt={handleClickResetSystemPrompt}
@@ -214,13 +213,11 @@ export const Menu = ({
           onChangeCustomErrorMessage={handleChangeCustomErrorMessage}
           characterName={characterName}
           onChangeCharacterName={onChangeCharacterName}
-          // --- Pasar las nuevas propiedades a Settings ---
           selectedModel={selectedModel}
           onChangeSelectedModel={onChangeSelectedModel}
         />
       )}
       {!showChatLog && assistantMessage && (
-        // --- Pasa el nombre del personaje al AssistantText ---
         <AssistantText message={assistantMessage} characterName={characterName} />
       )}
       <input
