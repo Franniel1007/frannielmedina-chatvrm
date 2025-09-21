@@ -20,7 +20,6 @@ import { ElevenLabsParam, DEFAULT_ELEVEN_LABS_PARAM } from "@/features/constants
 import { buildUrl } from "@/utils/buildUrl";
 import { websocketService } from '../services/websocketService';
 import { MessageMiddleOut } from "@/features/messages/messageMiddleOut";
-import { ChatMessage } from "@/components/restreamTokens"; // Importamos la interfaz ChatMessage
 
 const m_plus_2 = M_PLUS_2({
   variable: "--font-m-plus-2",
@@ -64,6 +63,7 @@ export default function Home() {
   const [customErrorMessage, setCustomErrorMessage] = useState<string>('La API de OpenRouter está temporalmente caída. Inténtalo de nuevo más tarde.');
   const [hasCustomError, setHasCustomError] = useState(false);
   
+  // --- AÑADIR: Nuevo estado para el nombre del personaje ---
   const [characterName, setCharacterName] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('characterName') || 'CHARACTER';
@@ -96,6 +96,7 @@ export default function Home() {
     if (savedCustomError) {
       setCustomErrorMessage(savedCustomError);
     }
+    // --- Cargar el nombre del personaje desde localStorage ---
     const savedCharacterName = localStorage.getItem('characterName');
     if (savedCharacterName) {
       setCharacterName(savedCharacterName);
@@ -174,18 +175,14 @@ export default function Home() {
   );
 
   const handleSendChat = useCallback(
-    // Aceptar un segundo argumento opcional para el mensaje de visualización
-    async (text: string, displayMessage?: string) => {
+    async (text: string) => {
       const newMessage = text;
       if (newMessage == null) return;
 
       setChatProcessing(true);
-      // Usar el displayMessage si está disponible, de lo contrario, usar el mensaje original
-      const logContent = displayMessage || newMessage;
-      
       const messageLog: Message[] = [
         ...chatLog,
-        { role: "user", content: logContent },
+        { role: "user", content: newMessage },
       ];
       setChatLog(messageLog);
 
@@ -280,12 +277,6 @@ export default function Home() {
     setRestreamTokens(tokens);
   }, []);
 
-  const handleChatMessage = useCallback((message: ChatMessage) => {
-    const textToAI = `Received these messages from your livestream, please respond: ${message.displayName}: ${message.text}`;
-    const textToDisplay = `[${message.displayName}]: ${message.text}`;
-    handleSendChat(textToAI, textToDisplay);
-  }, [handleSendChat]);
-
   useEffect(() => {
     websocketService.setLLMCallback(async (message: string): Promise<LLMCallbackResult> => {
       try {
@@ -322,6 +313,7 @@ export default function Home() {
     window.localStorage.setItem('customErrorMessage', message);
   };
   
+  // --- Nuevo manejador para el nombre del personaje ---
   const handleChangeCharacterName = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newName = event.target.value;
     setCharacterName(newName);
@@ -362,10 +354,11 @@ export default function Home() {
         backgroundImage={backgroundImage}
         onChangeBackgroundImage={setBackgroundImage}
         onTokensUpdate={handleTokensUpdate}
-        onChatMessage={handleChatMessage}
+        onChatMessage={handleSendChat}
         onChangeOpenRouterKey={handleOpenRouterKeyChange}
         customErrorMessage={customErrorMessage}
         onChangeCustomErrorMessage={handleChangeCustomErrorMessage}
+        // --- Pasar el nombre del personaje y su manejador a Menu ---
         characterName={characterName}
         onChangeCharacterName={handleChangeCharacterName}
       />
