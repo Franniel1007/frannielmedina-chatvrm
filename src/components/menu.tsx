@@ -30,9 +30,11 @@ type Props = {
   onTokensUpdate: (tokens: any) => void;
   onChangeOpenRouterKey: (event: React.ChangeEvent<HTMLInputElement>) => void;
   openRouterKey: string;
-  // Agrega las nuevas propiedades
   customErrorMessage: string;
   onChangeCustomErrorMessage: (message: string) => void;
+  // --- AÑADIR: Propiedades para el nombre del personaje ---
+  characterName: string;
+  onChangeCharacterName: (event: React.ChangeEvent<HTMLInputElement>) => void;
 };
 export const Menu = ({
   openAiKey,
@@ -56,9 +58,11 @@ export const Menu = ({
   onChatMessage,
   onTokensUpdate,
   onChangeOpenRouterKey,
-  // Desestructura las nuevas propiedades
   customErrorMessage,
   onChangeCustomErrorMessage,
+  // --- Desestructurar el nombre del personaje ---
+  characterName,
+  onChangeCharacterName,
 }: Props) => {
   const [showSettings, setShowSettings] = useState(false);
   const [showChatLog, setShowChatLog] = useState(false);
@@ -141,7 +145,6 @@ export const Menu = ({
     onChangeBackgroundImage(image);
   };
   
-  // Nuevo manejador para el cambio del mensaje de error personalizado
   const handleChangeCustomErrorMessage = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       onChangeCustomErrorMessage(event.target.value);
@@ -202,13 +205,16 @@ export const Menu = ({
           onTokensUpdate={onTokensUpdate}
           onChatMessage={onChatMessage}
           onChangeOpenRouterKey={onChangeOpenRouterKey}
-          // Pasa las nuevas propiedades al componente Settings
           customErrorMessage={customErrorMessage}
           onChangeCustomErrorMessage={handleChangeCustomErrorMessage}
+          // --- Pasar las nuevas propiedades a Settings ---
+          characterName={characterName}
+          onChangeCharacterName={onChangeCharacterName}
         />
       )}
       {!showChatLog && assistantMessage && (
-        <AssistantText message={assistantMessage} />
+        // --- Pasa el nombre del personaje al AssistantText ---
+        <AssistantText message={assistantMessage} characterName={characterName} />
       )}
       <input
         type="file"
