@@ -1,17 +1,13 @@
+// src/pages/index.tsx
 import { useCallback, useContext, useEffect, useState } from "react";
 import VrmViewer from "@/components/vrmViewer";
 import { ViewerContext } from "@/features/vrmViewer/viewerContext";
-import {
-  Message,
-  textsToScreenplay,
-  Screenplay,
-} from "@/features/messages/messages";
+import { Message, textsToScreenplay, Screenplay } from "@/features/messages/messages";
 import { speakCharacter } from "@/features/messages/speakCharacter";
 import { MessageInputContainer } from "@/components/messageInputContainer";
 import { SYSTEM_PROMPT } from "@/features/constants/systemPromptConstants";
 import { KoeiroParam, DEFAULT_KOEIRO_PARAM } from "@/features/constants/koeiroParam";
-// Nueva ruta de importación:
-import { getChatResponseStream } from "../../features/chat/openAiChat";
+import { getChatResponseStream } from "@/features/chat/openAiChat"; // ✅ Corregido
 import { M_PLUS_2, Montserrat } from "next/font/google";
 import { Introduction } from "@/components/introduction";
 import { Menu } from "@/components/menu";
@@ -19,22 +15,13 @@ import { GitHubLink } from "@/components/githubLink";
 import { Meta } from "@/components/meta";
 import { ElevenLabsParam, DEFAULT_ELEVEN_LABS_PARAM } from "@/features/constants/elevenLabsParam";
 import { buildUrl } from "@/utils/buildUrl";
-import { websocketService } from '../services/websocketService';
+import { websocketService } from "@/services/websocketService";
 import { MessageMiddleOut } from "@/features/messages/messageMiddleOut";
 import { ChatMessage } from "@/components/restreamTokens";
-import md5 from 'md5';
+import md5 from "md5";
 
-const m_plus_2 = M_PLUS_2({
-  variable: "--font-m-plus-2",
-  display: "swap",
-  preload: false,
-});
-
-const montserrat = Montserrat({
-  variable: "--font-montserrat",
-  display: "swap",
-  subsets: ["latin"],
-});
+const m_plus_2 = M_PLUS_2({ variable: "--font-m-plus-2", display: "swap", preload: false });
+const montserrat = Montserrat({ variable: "--font-montserrat", display: "swap", subsets: ["latin"] });
 
 type LLMCallbackResult = {
   processed: boolean;
@@ -57,87 +44,64 @@ export default function Home() {
   const [chatProcessing, setChatProcessing] = useState(false);
   const [chatLog, setChatLog] = useState<Message[]>([]);
   const [assistantMessage, setAssistantMessage] = useState("");
-  const [backgroundImage, setBackgroundImage] = useState<string>('');
+  const [backgroundImage, setBackgroundImage] = useState<string>("");
   const [restreamTokens, setRestreamTokens] = useState<any>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [isAISpeaking, setIsAISpeaking] = useState(false);
-  const [openRouterKey, setOpenRouterKey] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('openRouterKey') || '';
-    }
-    return '';
-  });
-  
-  const [customErrorMessage, setCustomErrorMessage] = useState<string>('La API de OpenRouter está temporalmente caída. Inténtalo de nuevo más tarde.');
+  const [openRouterKey, setOpenRouterKey] = useState<string>(() =>
+    typeof window !== "undefined" ? localStorage.getItem("openRouterKey") || "" : ""
+  );
+  const [customErrorMessage, setCustomErrorMessage] = useState<string>(
+    "La API de OpenRouter está temporalmente caída. Inténtalo de nuevo más tarde."
+  );
   const [hasCustomError, setHasCustomError] = useState(false);
-  
-  const [characterName, setCharacterName] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('characterName') || 'CHARACTER';
-    }
-    return 'CHARACTER';
-  });
+  const [characterName, setCharacterName] = useState<string>(
+    typeof window !== "undefined" ? localStorage.getItem("characterName") || "CHARACTER" : "CHARACTER"
+  );
+  const [selectedModel, setSelectedModel] = useState<string>(
+    typeof window !== "undefined" ? localStorage.getItem("selectedModel") || "google/gemini-2.0-flash-exp:free" : "google/gemini-2.0-flash-exp:free"
+  );
 
-  const [selectedModel, setSelectedModel] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('selectedModel') || 'google/gemini-2.0-flash-exp:free';
-    }
-    return 'google/gemini-2.0-flash-exp:free';
-  });
-  
+  // --- Load saved parameters
   useEffect(() => {
-    if (window.localStorage.getItem("chatVRMParams")) {
-      const params = JSON.parse(
-        window.localStorage.getItem("chatVRMParams") as string
-      );
-      setSystemPrompt(params.systemPrompt);
-      setElevenLabsParam(params.elevenLabsParam);
-      setChatLog(params.chatLog);
+    if (typeof window === "undefined") return;
+
+    const params = window.localStorage.getItem("chatVRMParams");
+    if (params) {
+      const parsed = JSON.parse(params);
+      setSystemPrompt(parsed.systemPrompt);
+      setElevenLabsParam(parsed.elevenLabsParam);
+      setChatLog(parsed.chatLog);
     }
-    if (window.localStorage.getItem("elevenLabsKey")) {
-      const key = window.localStorage.getItem("elevenLabsKey") as string;
-      setElevenLabsKey(key);
-    }
-    const savedOpenRouterKey = localStorage.getItem('openRouterKey');
-    if (savedOpenRouterKey) {
-      setOpenRouterKey(savedOpenRouterKey);
-    }
-    const savedBackground = localStorage.getItem('backgroundImage');
-    if (savedBackground) {
-      setBackgroundImage(savedBackground);
-    }
-    const savedCustomError = localStorage.getItem('customErrorMessage');
-    if (savedCustomError) {
-      setCustomErrorMessage(savedCustomError);
-    }
-    const savedCharacterName = localStorage.getItem('characterName');
-    if (savedCharacterName) {
-      setCharacterName(savedCharacterName);
-    }
-    const savedSelectedModel = localStorage.getItem('selectedModel');
-    if (savedSelectedModel) {
-      setSelectedModel(savedSelectedModel);
-    }
+
+    const savedKeys = ["elevenLabsKey", "openRouterKey", "backgroundImage", "customErrorMessage", "characterName", "selectedModel"];
+    savedKeys.forEach((key) => {
+      const value = localStorage.getItem(key);
+      if (value) {
+        switch (key) {
+          case "elevenLabsKey": setElevenLabsKey(value); break;
+          case "openRouterKey": setOpenRouterKey(value); break;
+          case "backgroundImage": setBackgroundImage(value); break;
+          case "customErrorMessage": setCustomErrorMessage(value); break;
+          case "characterName": setCharacterName(value); break;
+          case "selectedModel": setSelectedModel(value); break;
+        }
+      }
+    });
   }, []);
 
+  // --- Save parameters
   useEffect(() => {
-    process.nextTick(() => {
-      window.localStorage.setItem(
-        "chatVRMParams",
-        JSON.stringify({ systemPrompt, elevenLabsParam, chatLog })
-      )
-      window.localStorage.setItem("elevenLabsKey", elevenLabsKey);
-    });
+    window.localStorage.setItem("chatVRMParams", JSON.stringify({ systemPrompt, elevenLabsParam, chatLog }));
+    window.localStorage.setItem("elevenLabsKey", elevenLabsKey);
   }, [systemPrompt, elevenLabsParam, chatLog, elevenLabsKey]);
 
+  // --- Background image
   useEffect(() => {
-    if (backgroundImage) {
-      document.body.style.backgroundImage = `url(${backgroundImage})`;
-    } else {
-      document.body.style.backgroundImage = `url(${buildUrl("/bg-c.png")})`;
-    }
+    document.body.style.backgroundImage = backgroundImage ? `url(${backgroundImage})` : `url(${buildUrl("/bg-c.png")})`;
   }, [backgroundImage]);
-  
+
+  // --- Custom error message save
   useEffect(() => {
     if (hasCustomError) {
       window.localStorage.setItem("customErrorMessage", customErrorMessage);
@@ -145,45 +109,30 @@ export default function Home() {
     }
   }, [customErrorMessage, hasCustomError]);
 
+  // --- Chat log update
   const handleChangeChatLog = useCallback(
     (targetIndex: number, text: string) => {
-      const newChatLog = chatLog.map((v: Message, i) => {
-        return i === targetIndex ? { role: v.role, content: text } : v;
-      });
-
-      setChatLog(newChatLog);
+      setChatLog((prev) =>
+        prev.map((msg, i) => (i === targetIndex ? { ...msg, content: text } : msg))
+      );
     },
-    [chatLog]
+    []
   );
 
+  // --- AI speech
   const handleSpeakAi = useCallback(
-    async (
-      screenplay: Screenplay,
-      elevenLabsKey: string,
-      elevenLabsParam: ElevenLabsParam,
-      onStart?: () => void,
-      onEnd?: () => void
-    ) => {
+    async (screenplay: Screenplay, elevenLabsKey: string, elevenLabsParam: ElevenLabsParam, onStart?: () => void, onEnd?: () => void) => {
       setIsAISpeaking(true);
       try {
-        await speakCharacter(
-          screenplay, 
-          elevenLabsKey, 
-          elevenLabsParam, 
-          viewer, 
-          () => {
-            setIsPlayingAudio(true);
-            console.log('audio playback started');
-            onStart?.();
-          }, 
-          () => {
-            setIsPlayingAudio(false);
-            console.log('audio playback completed');
-            onEnd?.();
-          }
-        );
+        await speakCharacter(screenplay, elevenLabsKey, elevenLabsParam, viewer, () => {
+          setIsPlayingAudio(true);
+          onStart?.();
+        }, () => {
+          setIsPlayingAudio(false);
+          onEnd?.();
+        });
       } catch (error) {
-        console.error('Error during AI speech:', error);
+        console.error(error);
       } finally {
         setIsAISpeaking(false);
       }
@@ -191,42 +140,24 @@ export default function Home() {
     [viewer]
   );
 
+  // --- Send chat
   const handleSendChat = useCallback(
     async (text: string, displayMessage?: string) => {
-      const newMessage = text;
-      if (newMessage == null) return;
+      if (!text) return;
 
       setChatProcessing(true);
-      const logContent = displayMessage || newMessage;
-      
-      const messageLog: Message[] = [
-        ...chatLog,
-        { role: "user", content: logContent },
-      ];
+      const messageLog: Message[] = [...chatLog, { role: "user", content: displayMessage || text }];
       setChatLog(messageLog);
 
-      const messageProcessor = new MessageMiddleOut();
-      const processedMessages = messageProcessor.process([
-        {
-          role: "system",
-          content: systemPrompt,
-        },
-        ...messageLog,
-      ]);
+      const processedMessages = new MessageMiddleOut().process([{ role: "system", content: systemPrompt }, ...messageLog]);
 
-      let localOpenRouterKey = openRouterKey;
-      if (!localOpenRouterKey) {
-        localOpenRouterKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY!;
-      }
+      const key = openRouterKey || process.env.NEXT_PUBLIC_OPENROUTER_API_KEY!;
+      const stream = await getChatResponseStream(processedMessages, key, customErrorMessage, selectedModel).catch((e) => {
+        console.error(e);
+        return null;
+      });
 
-      const stream = await getChatResponseStream(processedMessages, localOpenRouterKey, customErrorMessage, selectedModel).catch(
-        (e) => {
-          console.error(e);
-          return null;
-        }
-      );
-      
-      if (stream == null) {
+      if (!stream) {
         setChatProcessing(false);
         return;
       }
@@ -234,137 +165,64 @@ export default function Home() {
       const reader = stream.getReader();
       let receivedMessage = "";
       let aiTextLog = "";
-      let tag = "";
-      const sentences = new Array<string>();
+      const sentences: string[] = [];
+
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
           receivedMessage += value;
-          const tagMatch = receivedMessage.match(/^\[(.*?)\]/);
-          if (tagMatch && tagMatch[0]) {
-            tag = tagMatch[0];
-            receivedMessage = receivedMessage.slice(tag.length);
-          }
-
-          const sentenceMatch = receivedMessage.match(
-            /^(.+[。．！？\n.!?]|.{10,}[、,])/
-          );
-          if (sentenceMatch && sentenceMatch[0]) {
+          const sentenceMatch = receivedMessage.match(/^(.+[。．！？\n.!?]|.{10,}[、,])/);
+          if (sentenceMatch?.[0]) {
             const sentence = sentenceMatch[0];
             sentences.push(sentence);
             receivedMessage = receivedMessage.slice(sentence.length).trimStart();
-            
-            if (
-              !sentence.replace(
-                /^[\s\[\(\{「［（【『〈《〔｛«‹〘〚〛〙›»〕》〉』】）］」\}\)\]]+$/g,
-                ""
-              )
-            ) {
-              continue;
-            }
-
-            const aiText = `${tag} ${sentence}`;
+            const aiText = sentence;
             const aiTalks = textsToScreenplay([aiText], koeiroParam);
             aiTextLog += aiText;
-            const currentAssistantMessage = sentences.join(" ");
             handleSpeakAi(aiTalks[0], elevenLabsKey, elevenLabsParam, () => {
-              setAssistantMessage(currentAssistantMessage);
+              setAssistantMessage(sentences.join(" "));
             });
           }
         }
       } catch (e) {
-        setChatProcessing(false);
         console.error(e);
       } finally {
         reader.releaseLock();
       }
 
-      const messageLogAssistant: Message[] = [
-        ...messageLog,
-        { role: "assistant", content: aiTextLog },
-      ];
-
-      setChatLog(messageLogAssistant);
+      setChatLog([...messageLog, { role: "assistant", content: aiTextLog }]);
       setChatProcessing(false);
     },
-    [systemPrompt, chatLog, handleSpeakAi, elevenLabsKey, elevenLabsParam, openRouterKey, customErrorMessage, selectedModel]
+    [chatLog, systemPrompt, koeiroParam, elevenLabsKey, elevenLabsParam, openRouterKey, selectedModel, customErrorMessage, handleSpeakAi]
   );
 
-  const handleTokensUpdate = useCallback((tokens: any) => {
-    setRestreamTokens(tokens);
-  }, []);
-
+  const handleTokensUpdate = useCallback((tokens: any) => setRestreamTokens(tokens), []);
   const handleChatMessage = useCallback((message: ChatMessage) => {
-    const textToAI = `Received these messages from your livestream, please respond: ${message.displayName}: ${message.text}`;
-    const avatarUrl = generateAvatarUrl(message.username);
-    const textToDisplay = `[${message.displayName}]<image>${avatarUrl}</image> ${message.text}`;
-    handleSendChat(textToAI, textToDisplay);
+    const textToAI = `[${message.displayName}] ${message.text}`;
+    handleSendChat(textToAI);
   }, [handleSendChat]);
 
+  // --- Websocket callback
   useEffect(() => {
     websocketService.setLLMCallback(async (message: string): Promise<LLMCallbackResult> => {
+      if (isAISpeaking || isPlayingAudio || chatProcessing) return { processed: false, error: "System busy" };
       try {
-        if (isAISpeaking || isPlayingAudio || chatProcessing) {
-          console.log('Skipping message processing - system busy');
-          return {
-            processed: false,
-            error: 'System is busy processing previous message'
-          };
-        }
-        
         await handleSendChat(message);
-        return {
-          processed: true
-        };
+        return { processed: true };
       } catch (error) {
-        console.error('Error processing message:', error);
-        return {
-          processed: false,
-          error: error instanceof Error ? error.message : 'Unknown error occurred'
-        };
+        return { processed: false, error: error instanceof Error ? error.message : "Unknown error" };
       }
     });
-  }, [handleSendChat, chatProcessing, isPlayingAudio, isAISpeaking]);
-
-  const handleOpenRouterKeyChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newKey = event.target.value;
-    setOpenRouterKey(newKey);
-    localStorage.setItem('openRouterKey', newKey);
-  };
-  
-  const handleChangeCustomErrorMessage = (message: string) => {
-    setCustomErrorMessage(message);
-    window.localStorage.setItem('customErrorMessage', message);
-  };
-  
-  const handleChangeCharacterName = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newName = event.target.value;
-    setCharacterName(newName);
-    localStorage.setItem('characterName', newName);
-  };
-
-  const handleChangeSelectedModel = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const newModel = event.target.value;
-    setSelectedModel(newModel);
-    localStorage.setItem('selectedModel', newModel);
-  };
+  }, [handleSendChat, chatProcessing, isAISpeaking, isPlayingAudio]);
 
   return (
     <div className={`${m_plus_2.variable} ${montserrat.variable}`}>
       <Meta />
-      <Introduction
-        openAiKey={openAiKey}
-        onChangeAiKey={setOpenAiKey}
-        elevenLabsKey={elevenLabsKey}
-        onChangeElevenLabsKey={setElevenLabsKey}
-      />
+      <Introduction openAiKey={openAiKey} onChangeAiKey={setOpenAiKey} elevenLabsKey={elevenLabsKey} onChangeElevenLabsKey={setElevenLabsKey} />
       <VrmViewer />
-      <MessageInputContainer
-        isChatProcessing={chatProcessing}
-        onChatProcessStart={handleSendChat}
-      />
+      <MessageInputContainer isChatProcessing={chatProcessing} onChatProcessStart={handleSendChat} />
       <Menu
         openAiKey={openAiKey}
         elevenLabsKey={elevenLabsKey}
@@ -386,13 +244,12 @@ export default function Home() {
         onChangeBackgroundImage={setBackgroundImage}
         onTokensUpdate={handleTokensUpdate}
         onChatMessage={handleChatMessage}
-        onChangeOpenRouterKey={handleOpenRouterKeyChange}
-        customErrorMessage={customErrorMessage}
-        onChangeCustomErrorMessage={handleChangeCustomErrorMessage}
+        customDownMessage={customErrorMessage}
+        onChangeCustomDownMessage={setCustomErrorMessage}
         characterName={characterName}
-        onChangeCharacterName={handleChangeCharacterName}
+        onChangeCharacterName={(e) => { setCharacterName(e.target.value); localStorage.setItem('characterName', e.target.value); }}
         selectedModel={selectedModel}
-        onChangeSelectedModel={handleChangeSelectedModel}
+        onChangeSelectedModel={(e) => { setSelectedModel(e.target.value); localStorage.setItem('selectedModel', e.target.value); }}
       />
       <GitHubLink />
     </div>
