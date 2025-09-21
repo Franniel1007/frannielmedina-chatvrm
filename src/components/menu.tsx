@@ -7,6 +7,7 @@ import React, { useCallback, useContext, useRef, useState, useEffect } from "rea
 import { Settings } from "./settings";
 import { ViewerContext } from "@/features/vrmViewer/viewerContext";
 import { AssistantText } from "./assistantText";
+import { ChatMessage } from "./restreamTokens"; // ✅ Importamos ChatMessage
 
 type Props = {
   openAiKey: string;
@@ -26,7 +27,7 @@ type Props = {
   handleClickResetSystemPrompt: () => void;
   backgroundImage: string;
   onChangeBackgroundImage: (value: string) => void;
-  onChatMessage: (message: string) => void;
+  onChatMessage: (message: ChatMessage) => void; // ✅ Cambio de string a ChatMessage
   onTokensUpdate: (tokens: any) => void;
   onChangeOpenRouterKey: (event: React.ChangeEvent<HTMLInputElement>) => void;
   openRouterKey: string;
@@ -164,7 +165,7 @@ export const Menu = ({
             label="Settings"
             isProcessing={false}
             onClick={() => setShowSettings(true)}
-          ></IconButton>
+          />
           {showChatLog ? (
             <IconButton
               iconName="24/CommentOutline"
@@ -199,7 +200,6 @@ export const Menu = ({
           onChangeElevenLabsVoice={handleElevenLabsVoiceChange}
           onChangeSystemPrompt={handleChangeSystemPrompt}
           onChangeChatLog={onChangeChatLog}
-          // --- ERROR CORREGIDO: Cambiado a onChangeKoeiroParam ---
           onChangeKoeiroParam={handleChangeKoeiroParam}
           onClickOpenVrmFile={handleClickOpenVrmFile}
           onClickResetChatLog={handleClickResetChatLog}
@@ -207,7 +207,7 @@ export const Menu = ({
           backgroundImage={backgroundImage}
           onChangeBackgroundImage={handleBackgroundImageChange}
           onTokensUpdate={onTokensUpdate}
-          onChatMessage={onChatMessage}
+          onChatMessage={onChatMessage} // ✅ Ahora es ChatMessage
           onChangeOpenRouterKey={onChangeOpenRouterKey}
           customErrorMessage={customErrorMessage}
           onChangeCustomErrorMessage={handleChangeCustomErrorMessage}
