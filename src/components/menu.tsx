@@ -30,6 +30,9 @@ type Props = {
   onTokensUpdate: (tokens: any) => void;
   onChangeOpenRouterKey: (event: React.ChangeEvent<HTMLInputElement>) => void;
   openRouterKey: string;
+  // Agrega las nuevas propiedades
+  customErrorMessage: string;
+  onChangeCustomErrorMessage: (message: string) => void;
 };
 export const Menu = ({
   openAiKey,
@@ -53,6 +56,9 @@ export const Menu = ({
   onChatMessage,
   onTokensUpdate,
   onChangeOpenRouterKey,
+  // Desestructura las nuevas propiedades
+  customErrorMessage,
+  onChangeCustomErrorMessage,
 }: Props) => {
   const [showSettings, setShowSettings] = useState(false);
   const [showChatLog, setShowChatLog] = useState(false);
@@ -134,6 +140,14 @@ export const Menu = ({
   const handleBackgroundImageChange = (image: string) => {
     onChangeBackgroundImage(image);
   };
+  
+  // Nuevo manejador para el cambio del mensaje de error personalizado
+  const handleChangeCustomErrorMessage = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      onChangeCustomErrorMessage(event.target.value);
+    },
+    [onChangeCustomErrorMessage]
+  );
 
   return (
     <>
@@ -188,6 +202,9 @@ export const Menu = ({
           onTokensUpdate={onTokensUpdate}
           onChatMessage={onChatMessage}
           onChangeOpenRouterKey={onChangeOpenRouterKey}
+          // Pasa las nuevas propiedades al componente Settings
+          customErrorMessage={customErrorMessage}
+          onChangeCustomErrorMessage={handleChangeCustomErrorMessage}
         />
       )}
       {!showChatLog && assistantMessage && (
