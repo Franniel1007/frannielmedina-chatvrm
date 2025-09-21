@@ -308,42 +308,42 @@ export const Settings = ({
         <div className="text-text1 max-w-3xl mx-auto px-24 py-64 ">
           <div className="my-24 typography-32 font-bold">Configuración</div>
 
-          <div className="flex border-b border-gray-300">
+          <div className="flex flex-wrap border-b border-gray-300">
             <button
-              className={`py-2 px-4 ${activeTab === "api" ? "border-b-2 border-blue-500 font-bold" : ""}`}
+              className={`flex items-center gap-2 py-2 px-4 ${activeTab === "api" ? "border-b-2 border-blue-500 font-bold" : ""}`}
               onClick={() => setActiveTab("api")}
             >
-              APIs
+              <span role="img" aria-label="APIs">⚙️</span> APIs
             </button>
             <button
-              className={`py-2 px-4 ${activeTab === "characterSettings" ? "border-b-2 border-blue-500 font-bold" : ""}`}
+              className={`flex items-center gap-2 py-2 px-4 ${activeTab === "characterSettings" ? "border-b-2 border-blue-500 font-bold" : ""}`}
               onClick={() => setActiveTab("characterSettings")}
             >
-              Configuración del personaje
+              <span role="img" aria-label="Configuración del personaje">👤</span> Configuración del personaje
             </button>
             <button
-              className={`py-2 px-4 ${activeTab === "voice" ? "border-b-2 border-blue-500 font-bold" : ""}`}
+              className={`flex items-center gap-2 py-2 px-4 ${activeTab === "voice" ? "border-b-2 border-blue-500 font-bold" : ""}`}
               onClick={() => setActiveTab("voice")}
             >
-              Voz
+              <span role="img" aria-label="Voz">🎤</span> Voz
             </button>
             <button
-              className={`py-2 px-4 ${activeTab === "personalization" ? "border-b-2 border-blue-500 font-bold" : ""}`}
+              className={`flex items-center gap-2 py-2 px-4 ${activeTab === "personalization" ? "border-b-2 border-blue-500 font-bold" : ""}`}
               onClick={() => setActiveTab("personalization")}
             >
-              Personaje y personalización
+              <span role="img" aria-label="Personaje y personalización">🎨</span> Personaje y personalización
             </button>
             <button
-              className={`py-2 px-4 ${activeTab === "streaming" ? "border-b-2 border-blue-500 font-bold" : ""}`}
+              className={`flex items-center gap-2 py-2 px-4 ${activeTab === "streaming" ? "border-b-2 border-blue-500 font-bold" : ""}`}
               onClick={() => setActiveTab("streaming")}
             >
-              Transmisión
+              <span role="img" aria-label="Transmisión">📡</span> Transmisión
             </button>
             <button
-              className={`py-2 px-4 ${activeTab === "about" ? "border-b-2 border-blue-500 font-bold" : ""}`}
+              className={`flex items-center gap-2 py-2 px-4 ${activeTab === "about" ? "border-b-2 border-blue-500 font-bold" : ""}`}
               onClick={() => setActiveTab("about")}
             >
-              Acerca de
+              <span role="img" aria-label="Acerca de">ℹ️</span> Acerca de
             </button>
           </div>
 
