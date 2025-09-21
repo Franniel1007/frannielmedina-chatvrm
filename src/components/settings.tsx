@@ -40,6 +40,9 @@ type Props = {
   onChatMessage: (message: string) => void;
   customErrorMessage: string;
   onChangeCustomErrorMessage: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  // --- AÑADIR: Propiedades para el nombre del personaje ---
+  characterName: string;
+  onChangeCharacterName: (event: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
 export const Settings = ({
@@ -68,6 +71,9 @@ export const Settings = ({
   onChatMessage,
   customErrorMessage,
   onChangeCustomErrorMessage,
+  // --- Desestructurar el nombre del personaje ---
+  characterName,
+  onChangeCharacterName,
 }: Props) => {
   const [elevenLabsVoices, setElevenLabsVoices] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("general");
@@ -104,6 +110,19 @@ export const Settings = ({
       case "general":
         return (
           <>
+            <div className="my-24">
+              <div className="my-16 typography-20 font-bold">Nombre del personaje</div>
+              <input
+                type="text"
+                placeholder="CHARACTER"
+                value={characterName}
+                onChange={onChangeCharacterName}
+                className="my-4 px-16 py-8 w-full h-40 bg-surface3 hover:bg-surface3-hover rounded-4 text-ellipsis"
+              ></input>
+              <div className="text-sm text-gray-600">
+                Cambia el nombre que aparece en el cuadro de diálogo del personaje.
+              </div>
+            </div>
             <div className="my-24">
               <div className="my-16 typography-20 font-bold">Mensaje de error personalizado</div>
               <input
