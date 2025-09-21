@@ -38,6 +38,8 @@ type Props = {
   onRestreamTokensUpdate?: (tokens: { access_token: string; refresh_token: string; } | null) => void;
   onTokensUpdate: (tokens: any) => void;
   onChatMessage: (message: string) => void;
+  customErrorMessage: string;
+  onChangeCustomErrorMessage: (event: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
 export const Settings = ({
@@ -64,9 +66,11 @@ export const Settings = ({
   onRestreamTokensUpdate = () => {},
   onTokensUpdate,
   onChatMessage,
+  customErrorMessage,
+  onChangeCustomErrorMessage,
 }: Props) => {
   const [elevenLabsVoices, setElevenLabsVoices] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState("api");
+  const [activeTab, setActiveTab] = useState("general");
 
   useEffect(() => {
     if (elevenLabsKey) {
@@ -97,6 +101,24 @@ export const Settings = ({
 
   const renderContent = () => {
     switch (activeTab) {
+      case "general":
+        return (
+          <>
+            <div className="my-24">
+              <div className="my-16 typography-20 font-bold">Mensaje de error personalizado</div>
+              <input
+                type="text"
+                placeholder="La API de OpenRouter está caída. Inténtalo de nuevo más tarde."
+                value={customErrorMessage}
+                onChange={onChangeCustomErrorMessage}
+                className="my-4 px-16 py-8 w-full h-40 bg-surface3 hover:bg-surface3-hover rounded-4 text-ellipsis"
+              ></input>
+              <div className="text-sm text-gray-600">
+                Este mensaje se mostrará si la API de OpenRouter no está disponible debido a una caída del servicio.
+              </div>
+            </div>
+          </>
+        );
       case "api":
         return (
           <>
@@ -310,10 +332,16 @@ export const Settings = ({
 
           <div className="flex flex-wrap border-b border-gray-300">
             <button
+              className={`flex items-center gap-2 py-2 px-4 ${activeTab === "general" ? "border-b-2 border-blue-500 font-bold" : ""}`}
+              onClick={() => setActiveTab("general")}
+            >
+              <span role="img" aria-label="General">⚙️</span> General
+            </button>
+            <button
               className={`flex items-center gap-2 py-2 px-4 ${activeTab === "api" ? "border-b-2 border-blue-500 font-bold" : ""}`}
               onClick={() => setActiveTab("api")}
             >
-              <span role="img" aria-label="APIs">⚙️</span> APIs
+              <span role="img" aria-label="APIs">🔧</span> APIs
             </button>
             <button
               className={`flex items-center gap-2 py-2 px-4 ${activeTab === "characterSettings" ? "border-b-2 border-blue-500 font-bold" : ""}`}
