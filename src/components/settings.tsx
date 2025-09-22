@@ -174,7 +174,7 @@ export const Settings = ({
               {/* Aquí está el mensaje de error para ElevenLabs */}
               {elevenLabsKey === '' && (
                 <p className="text-red-500 mt-2">
-                  ¡No has introducido la API de ElevenLabs, el personaje quedará en silencio! Por favor, obtenga la API, copia y pega desde la pestaña "APIs"
+                  ¡No has introducido la API de ElevenLabs, el personaje quedará en silencio! Por favor, obtenga la API, copia y pega desde la pestaña APIs
                 </p>
               )}
               <div>
