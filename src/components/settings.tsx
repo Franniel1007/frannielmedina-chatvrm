@@ -252,7 +252,8 @@ export const Settings = ({
               <div className="my-16 typography-20 font-bold">Selección de voz</div>
               {elevenLabsKey === '' && (
                 <p className="text-red-500 mt-2">
-                  ¡No has introducido la API de ElevenLabs, el personaje quedará en silencio! Por favor, obtenga la API, copia y pega desde la pestaña "APIs"
+                  ¡No has introducido la API de ElevenLabs, el personaje quedará en silencio! Por favor, obtenga la API, copia y pega desde la pestaña APIs.
+                  
                 </p>
               )}
               <div className="my-16">Selecciona entre las voces de ElevenLabs:</div>
