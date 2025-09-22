@@ -83,9 +83,9 @@ export const Settings = ({
   const [contentVisible, setContentVisible] = useState(true);
 
   const FREE_MODELS = [
-    { value: "google/gemini-2.0-flash-exp:free", label: "Google Gemini 2.0 Flash (Gratis)" },
-    { value: "tngtech/deepseek-r1t-chimera:free", label: "DeepSeek Chimera (Gratis)" },
-    { value: "x-ai/grok-4-fast:free", label: "Grok 4 Fast (Gratis)" },
+    { value: "google/gemini-2.0-flash-exp:free", label: "Google Gemini 2.0 Flash" },
+    { value: "tngtech/deepseek-r1t-chimera:free", label: "DeepSeek Chimera R1T2" },
+    { value: "x-ai/grok-4-fast:free", label: "Grok 4 Fast" },
   ];
 
   useEffect(() => {
@@ -256,7 +256,7 @@ export const Settings = ({
                   
                 </p>
               )}
-              <div className="my-16">Selecciona entre las voces de ElevenLabs:</div>
+              <div className="my-16">Selecciona entre las voces de ElevenLabs (Tambien incluyen voces que tienes guardadas):</div>
               <div className="my-8">
                 <select className="h-40 px-8" id="select-dropdown" onChange={onChangeElevenLabsVoice} value={elevenLabsParam.voiceId}>
                   {elevenLabsVoices.map((voice, index) => (
@@ -300,7 +300,7 @@ export const Settings = ({
         return (
           <div className="my-40">
             <div className="my-16 typography-20 font-bold">Transmisión</div>
-            <p>Esta sección lee automáticamente los tokens de Restream desde `restreamTokens.tsx`. No se requiere implementación directa aquí.</p>
+            <p>Aca puedes transmitir en vivo utlizando ChatVRM con Restream, funciona con Twitch, para transmitir en vivo en Twitch y YouTube, necesitas tener el bot de RestreamBot en tu canal de Twitch y tambien activar el modo de Reenvio para que el chat de YouTube se sincronize con Twitch y así tendrá la posibilidad de que el personaje pueda responder el chat de YouTube.</p>
             <RestreamTokens onTokensUpdate={onTokensUpdate} onChatMessage={onChatMessage} />
           </div>
         );
@@ -313,7 +313,7 @@ export const Settings = ({
               <p>v1.0.0</p>
             </div>
             <div className="my-8">
-              <p>Versión mejorada basada en <a href="https://github.com/zoan37/ChatVRM" target="_blank" rel="noopener noreferrer">ChatVRM original</a></p>
+              <p>Versión mejorada basada en <a href="https://github.com/zoan37/ChatVRM" target="_blank" rel="noopener noreferrer">ChatVRM original y de Pixiv</a></p>
             </div>
             <div className="my-8">
               <p>©2025 Franniel Medina</p>
