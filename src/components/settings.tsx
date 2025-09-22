@@ -79,6 +79,8 @@ export const Settings = ({
 }: Props) => {
   const [elevenLabsVoices, setElevenLabsVoices] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("general");
+  const [isClosing, setIsClosing] = useState(false);
+  const [contentVisible, setContentVisible] = useState(true);
 
   const FREE_MODELS = [
     { value: "google/gemini-2.0-flash-exp:free", label: "Google Gemini 2.0 Flash (Gratis)" },
@@ -110,6 +112,22 @@ export const Settings = ({
   const handleRemoveBackground = () => {
     onChangeBackgroundImage('');
     localStorage.removeItem('backgroundImage');
+  };
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      onClickClose();
+    }, 300); // Duración de la animación de cierre
+  };
+
+  const handleTabChange = (tabName: string) => {
+    if (activeTab === tabName) return;
+    setContentVisible(false);
+    setTimeout(() => {
+      setActiveTab(tabName);
+      setContentVisible(true);
+    }, 150); // Duración del efecto de fundido
   };
 
   const renderContent = () => {
@@ -232,11 +250,9 @@ export const Settings = ({
           <>
             <div className="my-40">
               <div className="my-16 typography-20 font-bold">Selección de voz</div>
-              {/* Aquí está el mensaje de error para ElevenLabs */}
               {elevenLabsKey === '' && (
                 <p className="text-red-500 mt-2">
-                  ¡No has introducido la API de ElevenLabs, el personaje quedará en silencio! Por favor, obtenga la API, copia y pega desde la pestaña APIs.
-                  
+                  ¡No has introducido la API de ElevenLabs, el personaje quedará en silencio! Por favor, obtenga la API, copia y pega desde la pestaña "APIs"
                 </p>
               )}
               <div className="my-16">Selecciona entre las voces de ElevenLabs:</div>
@@ -310,9 +326,13 @@ export const Settings = ({
   };
 
   return (
-    <div className="absolute z-40 w-full h-full bg-white/80 backdrop-blur ">
+    <div
+      className={`absolute z-40 w-full h-full bg-white/80 backdrop-blur 
+                  transition-transform duration-300 ease-in-out
+                  ${isClosing ? "translate-y-full" : "translate-y-0"}`}
+    >
       <div className="absolute m-24">
-        <IconButton iconName="24/Close" isProcessing={false} onClick={onClickClose} />
+        <IconButton iconName="24/Close" isProcessing={false} onClick={handleClose} />
       </div>
       <div className="max-h-full overflow-auto">
         <div className="text-text1 max-w-3xl mx-auto px-24 py-64 ">
@@ -322,15 +342,18 @@ export const Settings = ({
             {["general","api","characterSettings","voice","personalization","streaming","about"].map(tab => (
               <button
                 key={tab}
-                className={`flex items-center gap-2 py-2 px-4 ${activeTab === tab ? "border-b-2 border-blue-500 font-bold" : ""}`}
-                onClick={() => setActiveTab(tab)}
+                className={`flex items-center gap-2 py-2 px-4 transition-all duration-300 ease-in-out
+                          ${activeTab === tab ? "border-b-2 border-blue-500 font-bold" : ""}`}
+                onClick={() => handleTabChange(tab)}
               >
                 <span role="img" aria-label={tab}>{tab === "general" ? "⚙️" : tab === "api" ? "🔧" : tab === "characterSettings" ? "👤" : tab === "voice" ? "🎤" : tab === "personalization" ? "🎨" : tab === "streaming" ? "📡" : "ℹ️"}</span> {tab === "characterSettings" ? "Configuración del personaje" : tab === "personalization" ? "Personaje y personalización" : tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
             ))}
           </div>
 
-          <div className="mt-8">{renderContent()}</div>
+          <div className={`mt-8 transition-opacity duration-300 ease-in-out ${contentVisible ? "opacity-100" : "opacity-0"}`}>
+            {renderContent()}
+          </div>
         </div>
       </div>
     </div>
