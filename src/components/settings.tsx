@@ -171,6 +171,12 @@ export const Settings = ({
                 onChange={onChangeElevenLabsKey}
                 className="my-4 px-16 py-8 w-full h-40 bg-surface3 hover:bg-surface3-hover rounded-4 text-ellipsis"
               />
+              {/* Aquí está el mensaje de error para ElevenLabs */}
+              {elevenLabsKey === '' && (
+                <p className="text-red-500 mt-2">
+                  ¡No has introducido la API de ElevenLabs, el personaje quedará en silencio! Por favor, obtenga la API, copia y pega desde la pestaña "APIs"
+                </p>
+              )}
               <div>
                 Introduce tu clave de API de ElevenLabs para habilitar la conversión de texto a voz. Puedes obtener una clave de API en el&nbsp;
                 <Link url="https://beta.elevenlabs.io/" label="sitio web de ElevenLabs" />.
