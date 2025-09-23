@@ -84,7 +84,7 @@ export const Settings = ({
 
   const FREE_MODELS = [
     { value: "google/gemini-2.0-flash-exp:free", label: "Google Gemini 2.0 Flash" },
-    { value: "tngtech/deepseek-r1t-chimera:free", label: "DeepSeek Chimera R1T2" },
+    { value: "deepseek/deepseek-chat-v3.1:free", label: "Deepseek 3.1" },
     { value: "x-ai/grok-4-fast:free", label: "Grok 4 Fast" },
   ];
 
