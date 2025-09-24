@@ -1,4 +1,3 @@
-// menu.tsx
 import { IconButton } from "./iconButton";
 import { Message } from "@/features/messages/messages";
 import { ElevenLabsParam } from "@/features/constants/elevenLabsParam";
@@ -38,7 +37,8 @@ type Props = {
   onChangeCharacterName: (event: React.ChangeEvent<HTMLInputElement>) => void;
   selectedModel: string;
   onChangeSelectedModel: (event: React.ChangeEvent<HTMLSelectElement>) => void;
-  onClickResetAllSettings: () => void; // ✅ Agregado: para el botón de reinicio global
+  onClickResetAllSettings: () => void;
+  onClickResetVrm: () => void;
 };
 
 export const Menu = ({
@@ -69,14 +69,14 @@ export const Menu = ({
   onChangeCharacterName,
   selectedModel,
   onChangeSelectedModel,
-  onClickResetAllSettings, // ✅ Agregado: para el botón de reinicio global
+  onClickResetAllSettings,
+  onClickResetVrm,
 }: Props) => {
   const [showSettings, setShowSettings] = useState(false);
   const [showChatLog, setShowChatLog] = useState(false);
   const { viewer } = useContext(ViewerContext);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ✅ Agregado: Carga el VRM guardado al inicio
   useEffect(() => {
     const savedVrmUrl = localStorage.getItem('vrmUrl');
     if (savedVrmUrl && savedVrmUrl.startsWith('blob:')) {
@@ -149,7 +149,7 @@ export const Menu = ({
         const blob = new Blob([file], { type: "application/octet-stream" });
         const url = window.URL.createObjectURL(blob);
         viewer.loadVrm(url);
-        localStorage.setItem('vrmUrl', url); // ✅ Agregado: Guarda la URL del VRM
+        localStorage.setItem('vrmUrl', url);
       }
 
       event.target.value = "";
@@ -227,7 +227,8 @@ export const Menu = ({
           onChangeCharacterName={onChangeCharacterName}
           selectedModel={selectedModel}
           onChangeSelectedModel={onChangeSelectedModel}
-          onClickResetAllSettings={onClickResetAllSettings} // ✅ Agregado: Pasa la función de reinicio
+          onClickResetAllSettings={onClickResetAllSettings}
+          onClickResetVrm={onClickResetVrm}
         />
       )}
       {!showChatLog && assistantMessage && (
