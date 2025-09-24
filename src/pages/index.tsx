@@ -1,4 +1,3 @@
-// index.tsx
 // src/pages/index.tsx
 import { useCallback, useContext, useEffect, useState, ChangeEvent } from "react";
 import VrmViewer from "@/components/vrmViewer";
@@ -57,7 +56,6 @@ export default function Home() {
     typeof window !== "undefined" ? localStorage.getItem("selectedModel") || "google/gemini-2.0-flash-exp:free" : "google/gemini-2.0-flash-exp:free"
   );
 
-  // --- Load saved parameters
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -85,18 +83,15 @@ export default function Home() {
     });
   }, []);
 
-  // --- Save parameters
   useEffect(() => {
     window.localStorage.setItem("chatVRMParams", JSON.stringify({ systemPrompt, elevenLabsParam, chatLog }));
     window.localStorage.setItem("elevenLabsKey", elevenLabsKey);
   }, [systemPrompt, elevenLabsParam, chatLog, elevenLabsKey]);
 
-  // --- Background image
   useEffect(() => {
     document.body.style.backgroundImage = backgroundImage ? `url(${backgroundImage})` : `url(${buildUrl("/bg-c.png")})`;
   }, [backgroundImage]);
 
-  // --- Custom error message save
   useEffect(() => {
     if (hasCustomError) {
       window.localStorage.setItem("customErrorMessage", customErrorMessage);
@@ -104,7 +99,6 @@ export default function Home() {
     }
   }, [customErrorMessage, hasCustomError]);
 
-  // --- Chat log update
   const handleChangeChatLog = useCallback(
     (targetIndex: number, text: string) => {
       setChatLog((prev) =>
@@ -114,7 +108,6 @@ export default function Home() {
     []
   );
 
-  // --- AI speech
   const handleSpeakAi = useCallback(
     async (screenplay: Screenplay, elevenLabsKey: string, elevenLabsParam: ElevenLabsParam, onStart?: () => void, onEnd?: () => void) => {
       setIsAISpeaking(true);
@@ -135,7 +128,6 @@ export default function Home() {
     [viewer]
   );
 
-  // --- Send chat
   const handleSendChat = useCallback(
     async (text: string, displayMessage?: string) => {
       if (!text) return;
@@ -199,7 +191,6 @@ export default function Home() {
     handleSendChat(textToAI);
   }, [handleSendChat]);
 
-  // ✅ Agregado: Función para reiniciar toda la configuración
   const handleClickResetAllSettings = useCallback(() => {
     localStorage.clear();
     setChatLog([]);
@@ -211,11 +202,14 @@ export default function Home() {
     setCharacterName("CHARACTER");
     setSelectedModel("google/gemini-2.0-flash-exp:free");
     
-    // Recarga la página para aplicar todos los cambios
     window.location.reload();
   }, []);
 
-  // --- Websocket callback
+  const handleClickResetVrm = useCallback(() => {
+    localStorage.removeItem('vrmUrl');
+    viewer.loadVrm(buildUrl("/Miku.vrm"));
+  }, [viewer]);
+
   useEffect(() => {
     websocketService.setLLMCallback(async (message: string): Promise<LLMCallbackResult> => {
       if (isAISpeaking || isPlayingAudio || chatProcessing) return { processed: false, error: "System busy" };
@@ -262,7 +256,8 @@ export default function Home() {
         onChangeCharacterName={(e: ChangeEvent<HTMLInputElement>) => { setCharacterName(e.target.value); localStorage.setItem('characterName', e.target.value); }}
         selectedModel={selectedModel}
         onChangeSelectedModel={(e: ChangeEvent<HTMLSelectElement>) => { setSelectedModel(e.target.value); localStorage.setItem('selectedModel', e.target.value); }}
-        onClickResetAllSettings={handleClickResetAllSettings} // ✅ Agregado
+        onClickResetAllSettings={handleClickResetAllSettings}
+        onClickResetVrm={handleClickResetVrm}
       />
       <GitHubLink />
     </div>
