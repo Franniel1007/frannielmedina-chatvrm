@@ -1,5 +1,4 @@
-// settings.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { IconButton } from "./iconButton";
 import { TextButton } from "./textButton";
 import { Message } from "@/features/messages/messages";
@@ -45,7 +44,8 @@ type Props = {
   onChangeCharacterName: (event: React.ChangeEvent<HTMLInputElement>) => void;
   selectedModel: string;
   onChangeSelectedModel: (event: React.ChangeEvent<HTMLSelectElement>) => void;
-  onClickResetAllSettings: () => void; // ✅ Agregado: para el botón de reinicio global
+  onClickResetAllSettings: () => void;
+  onClickResetVrm: () => void;
 };
 
 export const Settings = ({
@@ -78,13 +78,18 @@ export const Settings = ({
   onChangeCharacterName,
   selectedModel,
   onChangeSelectedModel,
-  onClickResetAllSettings, // ✅ Agregado: para el botón de reinicio global
+  onClickResetAllSettings,
+  onClickResetVrm,
 }: Props) => {
   const [elevenLabsVoices, setElevenLabsVoices] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("general");
   const [isClosing, setIsClosing] = useState(false);
   const [contentVisible, setContentVisible] = useState(true);
-  const [showResetDialog, setShowResetDialog] = useState(false); // ✅ Agregado: para el diálogo de reinicio
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+  const [confirmationAction, setConfirmationAction] = useState<(() => void) | null>(null);
+
+  const loadOptionsInputRef = useRef<HTMLInputElement>(null);
 
   const FREE_MODELS = [
     { value: "google/gemini-2.0-flash-exp:free", label: "Google Gemini 2.0 Flash" },
@@ -114,8 +119,12 @@ export const Settings = ({
   };
 
   const handleRemoveBackground = () => {
-    onChangeBackgroundImage('');
-    localStorage.removeItem('backgroundImage');
+    setConfirmationAction(() => {
+      onChangeBackgroundImage('');
+      localStorage.removeItem('backgroundImage');
+      setShowConfirmationDialog(false);
+    });
+    setShowConfirmationDialog(true);
   };
 
   const handleClose = () => {
@@ -134,7 +143,6 @@ export const Settings = ({
     }, 150);
   };
 
-  // ✅ Agregado: Funciones para guardar y cargar
   const handleSaveOptions = () => {
     const data = {
       systemPrompt,
@@ -175,7 +183,6 @@ export const Settings = ({
     }
   };
 
-  // ✅ Agregado: Función para reiniciar
   const handleReset = () => {
     setShowResetDialog(true);
   };
@@ -183,6 +190,22 @@ export const Settings = ({
   const handleConfirmReset = () => {
     onClickResetAllSettings();
     setShowResetDialog(false);
+  };
+
+  const handleResetCharacterSettings = () => {
+    setConfirmationAction(() => {
+      onClickResetSystemPrompt();
+      setShowConfirmationDialog(false);
+    });
+    setShowConfirmationDialog(true);
+  };
+
+  const handleResetVrm = () => {
+    setConfirmationAction(() => {
+      onClickResetVrm();
+      setShowConfirmationDialog(false);
+    });
+    setShowConfirmationDialog(true);
   };
 
   const renderContent = () => {
@@ -217,7 +240,6 @@ export const Settings = ({
               </div>
             </div>
 
-            {/* ✅ Sección de Guardado */}
             <div className="my-40">
               <div className="my-16 typography-20 font-bold">Guardado</div>
               <div className="flex flex-col gap-4">
@@ -228,15 +250,14 @@ export const Settings = ({
                   onChange={handleLoadOptions}
                   className="hidden"
                   id="load-options-file"
+                  ref={loadOptionsInputRef}
                 />
                 <label htmlFor="load-options-file">
-                  <TextButton>Cargar archivo de opciones</TextButton>
+                  <TextButton onClick={() => loadOptionsInputRef.current?.click()}>Cargar archivo de opciones</TextButton>
                 </label>
-                <TextButton onClick={handleReset}>Reiniciar la configuración</TextButton>
               </div>
             </div>
 
-            {/* ✅ Zona de Peligro */}
             <div className="my-40">
               <div className="my-16 typography-20 font-bold text-red-500">Zona de peligro</div>
               <div className="flex flex-col gap-4">
@@ -299,7 +320,7 @@ export const Settings = ({
             <div className="my-40">
               <div className="my-8">
                 <div className="my-16 typography-20 font-bold">Configuración del personaje</div>
-                <TextButton onClick={onClickResetSystemPrompt}>Restablecer configuración del personaje</TextButton>
+                <TextButton onClick={handleResetCharacterSettings}>Restablecer configuración del personaje</TextButton>
               </div>
               <textarea
                 value={systemPrompt}
@@ -357,7 +378,10 @@ export const Settings = ({
           <>
             <div className="my-40">
               <div className="my-16 typography-20 font-bold">Modelo del personaje</div>
-              <div className="my-8"><TextButton onClick={onClickOpenVrmFile}>Abrir VRM</TextButton></div>
+              <div className="my-8 flex flex-col gap-4">
+                <TextButton onClick={onClickOpenVrmFile}>Abrir VRM</TextButton>
+                <TextButton onClick={handleResetVrm}>VRM por defecto</TextButton>
+              </div>
             </div>
             <div className="my-40">
               <div className="my-16 typography-20 font-bold">Imagen de fondo</div>
@@ -445,7 +469,6 @@ export const Settings = ({
         </div>
       </div>
 
-      {/* ✅ Diálogo de Reinicio */}
       {showResetDialog && (
         <div className="absolute z-50 w-full h-full bg-black/50 flex items-center justify-center">
           <div className="bg-white p-24 rounded-lg shadow-xl text-center">
@@ -456,6 +479,21 @@ export const Settings = ({
             <div className="flex justify-center gap-8">
               <TextButton onClick={handleConfirmReset} color="red">Sí, reiniciar</TextButton>
               <TextButton onClick={() => setShowResetDialog(false)}>No, cancelar</TextButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showConfirmationDialog && (
+        <div className="absolute z-50 w-full h-full bg-black/50 flex items-center justify-center">
+          <div className="bg-white p-24 rounded-lg shadow-xl text-center">
+            <div className="typography-24 font-bold">¿Estás seguro?</div>
+            <div className="my-16 text-text1">
+              Esta acción no se puede deshacer.
+            </div>
+            <div className="flex justify-center gap-8">
+              <TextButton onClick={() => { confirmationAction?.(); setShowConfirmationDialog(false); }}>Sí</TextButton>
+              <TextButton onClick={() => setShowConfirmationDialog(false)}>No</TextButton>
             </div>
           </div>
         </div>
