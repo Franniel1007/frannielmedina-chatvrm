@@ -1,3 +1,4 @@
+// index.tsx
 // src/pages/index.tsx
 import { useCallback, useContext, useEffect, useState, ChangeEvent } from "react";
 import VrmViewer from "@/components/vrmViewer";
@@ -198,6 +199,22 @@ export default function Home() {
     handleSendChat(textToAI);
   }, [handleSendChat]);
 
+  // ✅ Agregado: Función para reiniciar toda la configuración
+  const handleClickResetAllSettings = useCallback(() => {
+    localStorage.clear();
+    setChatLog([]);
+    setBackgroundImage("");
+    setSystemPrompt(SYSTEM_PROMPT);
+    setElevenLabsKey("");
+    setOpenRouterKey("");
+    setCustomErrorMessage("La API de OpenRouter está temporalmente caída. Inténtalo de nuevo más tarde.");
+    setCharacterName("CHARACTER");
+    setSelectedModel("google/gemini-2.0-flash-exp:free");
+    
+    // Recarga la página para aplicar todos los cambios
+    window.location.reload();
+  }, []);
+
   // --- Websocket callback
   useEffect(() => {
     websocketService.setLLMCallback(async (message: string): Promise<LLMCallbackResult> => {
@@ -245,6 +262,7 @@ export default function Home() {
         onChangeCharacterName={(e: ChangeEvent<HTMLInputElement>) => { setCharacterName(e.target.value); localStorage.setItem('characterName', e.target.value); }}
         selectedModel={selectedModel}
         onChangeSelectedModel={(e: ChangeEvent<HTMLSelectElement>) => { setSelectedModel(e.target.value); localStorage.setItem('selectedModel', e.target.value); }}
+        onClickResetAllSettings={handleClickResetAllSettings} // ✅ Agregado
       />
       <GitHubLink />
     </div>
