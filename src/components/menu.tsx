@@ -1,3 +1,4 @@
+// menu.tsx
 import { IconButton } from "./iconButton";
 import { Message } from "@/features/messages/messages";
 import { ElevenLabsParam } from "@/features/constants/elevenLabsParam";
@@ -7,7 +8,7 @@ import React, { useCallback, useContext, useRef, useState, useEffect } from "rea
 import { Settings } from "./settings";
 import { ViewerContext } from "@/features/vrmViewer/viewerContext";
 import { AssistantText } from "./assistantText";
-import { ChatMessage } from "./restreamTokens"; // ✅ Importamos ChatMessage
+import { ChatMessage } from "./restreamTokens";
 
 type Props = {
   openAiKey: string;
@@ -27,7 +28,7 @@ type Props = {
   handleClickResetSystemPrompt: () => void;
   backgroundImage: string;
   onChangeBackgroundImage: (value: string) => void;
-  onChatMessage: (message: ChatMessage) => void; // ✅ Cambio de string a ChatMessage
+  onChatMessage: (message: ChatMessage) => void;
   onTokensUpdate: (tokens: any) => void;
   onChangeOpenRouterKey: (event: React.ChangeEvent<HTMLInputElement>) => void;
   openRouterKey: string;
@@ -37,6 +38,7 @@ type Props = {
   onChangeCharacterName: (event: React.ChangeEvent<HTMLInputElement>) => void;
   selectedModel: string;
   onChangeSelectedModel: (event: React.ChangeEvent<HTMLSelectElement>) => void;
+  onClickResetAllSettings: () => void; // ✅ Agregado: para el botón de reinicio global
 };
 
 export const Menu = ({
@@ -67,11 +69,20 @@ export const Menu = ({
   onChangeCharacterName,
   selectedModel,
   onChangeSelectedModel,
+  onClickResetAllSettings, // ✅ Agregado: para el botón de reinicio global
 }: Props) => {
   const [showSettings, setShowSettings] = useState(false);
   const [showChatLog, setShowChatLog] = useState(false);
   const { viewer } = useContext(ViewerContext);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ✅ Agregado: Carga el VRM guardado al inicio
+  useEffect(() => {
+    const savedVrmUrl = localStorage.getItem('vrmUrl');
+    if (savedVrmUrl && savedVrmUrl.startsWith('blob:')) {
+      viewer.loadVrm(savedVrmUrl);
+    }
+  }, [viewer]);
 
   useEffect(() => {
     const savedBackground = localStorage.getItem('backgroundImage');
@@ -138,6 +149,7 @@ export const Menu = ({
         const blob = new Blob([file], { type: "application/octet-stream" });
         const url = window.URL.createObjectURL(blob);
         viewer.loadVrm(url);
+        localStorage.setItem('vrmUrl', url); // ✅ Agregado: Guarda la URL del VRM
       }
 
       event.target.value = "";
@@ -207,7 +219,7 @@ export const Menu = ({
           backgroundImage={backgroundImage}
           onChangeBackgroundImage={handleBackgroundImageChange}
           onTokensUpdate={onTokensUpdate}
-          onChatMessage={onChatMessage} // ✅ Ahora es ChatMessage
+          onChatMessage={onChatMessage}
           onChangeOpenRouterKey={onChangeOpenRouterKey}
           customErrorMessage={customErrorMessage}
           onChangeCustomErrorMessage={handleChangeCustomErrorMessage}
@@ -215,6 +227,7 @@ export const Menu = ({
           onChangeCharacterName={onChangeCharacterName}
           selectedModel={selectedModel}
           onChangeSelectedModel={onChangeSelectedModel}
+          onClickResetAllSettings={onClickResetAllSettings} // ✅ Agregado: Pasa la función de reinicio
         />
       )}
       {!showChatLog && assistantMessage && (
