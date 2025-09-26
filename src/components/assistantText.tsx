@@ -25,7 +25,8 @@ export const AssistantText = ({ message, characterName }: { message: string, cha
           </div>
           <div className="px-24 py-16">
             <div className="text-secondary typography-16 font-M_PLUS_2 font-bold">
-              {message.replace(/\[([a-zA-Z]*?)\]/g, "")}
+              {/* Esto elimina el texto entre corchetes, como [Received messages...] o [NombreUsuario] */}
+              {message.replace(/\[([a-zA-Z0-9\s]*?)\]/g, "")} 
             </div>
           </div>
         </div>
