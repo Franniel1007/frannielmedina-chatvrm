@@ -1,3 +1,5 @@
+// src/components/chatLog.tsx
+
 import { useEffect, useRef } from "react";
 import { Message } from "@/features/messages/messages";
 type Props = {
@@ -47,11 +49,25 @@ const Chat = ({ role, message }: { role: string; message: string }) => {
   if (role === "assistant") {
     headerText = "CHARACTER";
   } else if (role === "user") {
-    headerText = "YOU";
+    // *** SOLUCIÓN: Intentar extraer el nombre del chat del contenido ***
+    const match = message.match(/^\[(.*?)\]\s/);
+    if (match && match[1]) {
+      // Si tiene el formato "[Nombre] Mensaje", usa el nombre
+      headerText = match[1]; 
+    } else {
+      // Si no tiene el formato, es el usuario local
+      headerText = "YOU"; 
+    }
   } else {
-    // Si el rol no es 'assistant' ni 'user', es el displayName de Restream
+    // Fallback seguro
     headerText = role; 
   }
+
+  // Obtener el contenido limpio del mensaje para mostrarlo
+  const cleanMessage = headerText === "YOU" || headerText === "CHARACTER" 
+    ? message 
+    // Eliminar el prefijo "[Nombre]" para la visualización, pero solo si es un mensaje de Restream
+    : message.replace(/^\[.*?\]\s/, ''); 
 
   return (
     <div className={`mx-auto max-w-sm my-16 ${offsetX}`}>
@@ -63,7 +79,8 @@ const Chat = ({ role, message }: { role: string; message: string }) => {
       </div>
       <div className="px-24 py-16 bg-white rounded-b-8">
         <div className={`typography-16 font-M_PLUS_2 font-bold ${roleText}`}>
-          {message}
+          {/* Mostrar el mensaje limpio */}
+          {cleanMessage}
         </div>
       </div>
     </div>
