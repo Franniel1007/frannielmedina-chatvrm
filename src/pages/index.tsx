@@ -1,3 +1,5 @@
+// src/pages/index.tsx
+
 import { useCallback, useContext, useEffect, useState, ChangeEvent } from "react";
 import VrmViewer from "@/components/vrmViewer";
 import { ViewerContext } from "@/features/vrmViewer/viewerContext";
@@ -15,7 +17,7 @@ import { Meta } from "@/components/meta";
 import { ElevenLabsParam, DEFAULT_ELEVEN_LABS_PARAM } from "@/features/constants/elevenLabsParam";
 import { buildUrl } from "@/utils/buildUrl";
 import { websocketService } from "@/services/websocketService";
-import { MessageMiddleOut } from "@/features/messages/messageMiddleOut";
+import { MessageMiddleOut } from "@/features/messages/messageMiddleOut"; // Aunque no la usemos aquí, la mantenemos por si la necesitas en otro lado
 import { ChatMessage } from "@/components/restreamTokens";
 
 const m_plus_2 = M_PLUS_2({ variable: "--font-m-plus-2", display: "swap", preload: false });
@@ -137,9 +139,10 @@ export default function Home() {
       let userMessageContent: string;
       
       if (displayName) {
-          // Mensaje de Restream: añadir al historial con el nombre del usuario
-          userMessageContent = text;
-          messageLog.push({ role: displayName, content: userMessageContent });
+          // *** SOLUCIÓN: Normalizar a role: "user" y prefijar el contenido ***
+          // El nombre del usuario se incluye al inicio del mensaje para que el LLM sepa quién habla.
+          userMessageContent = `[${displayName}] ${text}`; 
+          messageLog.push({ role: "user", content: userMessageContent });
       } else {
           // Mensaje normal del input: añadir al historial con el rol "user"
           userMessageContent = text;
@@ -148,15 +151,12 @@ export default function Home() {
       
       setChatLog(messageLog); // Actualiza el historial inmediatamente
 
-      // Prepara los mensajes para la IA, formateando los mensajes de Restream como instrucciones.
-      const processedMessages = new MessageMiddleOut().process([
+      // Prepara los mensajes para la IA: simplemente incluye el system prompt y el historial.
+      // MessageMiddleOut ya no es estrictamente necesario, pero lo mantenemos simple.
+      const processedMessages = [
           { role: "system", content: systemPrompt }, 
-          ...messageLog.map(msg => 
-              msg.role === "user" || msg.role === "assistant" 
-                  ? msg 
-                  : { role: "user", content: `[${msg.role}] ${msg.content}` } // Formatea displayName como [Nombre] Mensaje
-          )
-      ]);
+          ...messageLog 
+      ];
       
       const key = openRouterKey || process.env.NEXT_PUBLIC_OPENROUTER_API_KEY!;
       const stream = await getChatResponseStream(processedMessages, key, customErrorMessage, selectedModel).catch((e) => {
@@ -249,6 +249,7 @@ export default function Home() {
       <Introduction openAiKey={openAiKey} onChangeAiKey={setOpenAiKey} elevenLabsKey={elevenLabsKey} onChangeElevenLabsKey={setElevenLabsKey} />
       <VrmViewer />
       <MessageInputContainer isChatProcessing={chatProcessing} onChatProcessStart={handleSendChat} />
+      {/* El resto del componente Menu y otros son iguales */}
       <Menu
         openAiKey={openAiKey}
         elevenLabsKey={elevenLabsKey}
