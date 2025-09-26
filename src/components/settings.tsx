@@ -88,6 +88,7 @@ export const Settings = ({
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
   const [confirmationAction, setConfirmationAction] = useState<(() => void) | null>(null);
+  const [confirmationMessage, setConfirmationMessage] = useState('');
 
   const loadOptionsInputRef = useRef<HTMLInputElement>(null);
 
@@ -118,13 +119,18 @@ export const Settings = ({
     }
   };
 
+  const triggerConfirmation = (action: () => void, message: string) => {
+    setConfirmationMessage(message);
+    setConfirmationAction(() => action);
+    setShowConfirmationDialog(true);
+  };
+
   const handleRemoveBackground = () => {
-    setConfirmationAction(() => {
+    triggerConfirmation(() => {
       onChangeBackgroundImage('');
       localStorage.removeItem('backgroundImage');
       setShowConfirmationDialog(false);
-    });
-    setShowConfirmationDialog(true);
+    }, '¿Estás seguro de que deseas eliminar el fondo y poner el predeterminado?');
   };
 
   const handleClose = () => {
@@ -180,7 +186,13 @@ export const Settings = ({
         }
       };
       reader.readAsText(file);
+      // Importante: resetear el valor del input file para permitir la carga del mismo archivo de nuevo
+      event.target.value = '';
     }
+  };
+  
+  const handleLoadOptionsClick = () => {
+    loadOptionsInputRef.current?.click();
   };
 
   const handleReset = () => {
@@ -193,20 +205,23 @@ export const Settings = ({
   };
 
   const handleResetCharacterSettings = () => {
-    setConfirmationAction(() => {
+    triggerConfirmation(() => {
       onClickResetSystemPrompt();
       setShowConfirmationDialog(false);
-    });
-    setShowConfirmationDialog(true);
+    }, '¿Estás seguro de que deseas reiniciar la configuración del personaje?');
   };
 
   const handleResetVrm = () => {
-    setConfirmationAction(() => {
+    triggerConfirmation(() => {
       onClickResetVrm();
       setShowConfirmationDialog(false);
-    });
-    setShowConfirmationDialog(true);
+    }, '¿Estás seguro de que deseas poner el VRM por defecto?');
   };
+  
+  const handleConfirmAction = () => {
+    confirmationAction?.();
+    setShowConfirmationDialog(false);
+  }
 
   const renderContent = () => {
     switch (activeTab) {
@@ -252,9 +267,7 @@ export const Settings = ({
                   id="load-options-file"
                   ref={loadOptionsInputRef}
                 />
-                <label htmlFor="load-options-file">
-                  <TextButton onClick={() => loadOptionsInputRef.current?.click()}>Cargar archivo de opciones</TextButton>
-                </label>
+                <TextButton onClick={handleLoadOptionsClick}>Cargar archivo de opciones</TextButton>
               </div>
             </div>
 
@@ -466,38 +479,3 @@ export const Settings = ({
               {renderContent()}
             </div>
           </div>
-        </div>
-      </div>
-
-      {showResetDialog && (
-        <div className="absolute z-50 w-full h-full bg-black/50 flex items-center justify-center">
-          <div className="bg-white p-24 rounded-lg shadow-xl text-center">
-            <div className="typography-24 font-bold text-red-500">¡Atención!</div>
-            <div className="my-16 text-text1">
-              ¿Estás seguro que deseas **reiniciar toda la configuración**? Esto será **irreversible**.
-            </div>
-            <div className="flex justify-center gap-8">
-              <TextButton onClick={handleConfirmReset} color="red">Sí, reiniciar</TextButton>
-              <TextButton onClick={() => setShowResetDialog(false)}>No, cancelar</TextButton>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showConfirmationDialog && (
-        <div className="absolute z-50 w-full h-full bg-black/50 flex items-center justify-center">
-          <div className="bg-white p-24 rounded-lg shadow-xl text-center">
-            <div className="typography-24 font-bold">¿Estás seguro?</div>
-            <div className="my-16 text-text1">
-              Esta acción no se puede deshacer.
-            </div>
-            <div className="flex justify-center gap-8">
-              <TextButton onClick={() => { confirmationAction?.(); setShowConfirmationDialog(false); }}>Sí</TextButton>
-              <TextButton onClick={() => setShowConfirmationDialog(false)}>No</TextButton>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
-};
