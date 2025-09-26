@@ -1,3 +1,5 @@
+// src/features/messages/messages.ts
+
 import { VRMExpression, VRMExpressionPresetName } from "@pixiv/three-vrm";
 import { KoeiroParam } from "../constants/koeiroParam";
 
@@ -8,6 +10,7 @@ export type Message = {
   content: string;
 };
 
+// ... (El resto del archivo permanece sin cambios)
 const talkStyles = [
   "talk",
   "happy",
