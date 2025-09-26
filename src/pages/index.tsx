@@ -1,4 +1,3 @@
-// src/pages/index.tsx
 import { useCallback, useContext, useEffect, useState, ChangeEvent } from "react";
 import VrmViewer from "@/components/vrmViewer";
 import { ViewerContext } from "@/features/vrmViewer/viewerContext";
@@ -129,15 +128,36 @@ export default function Home() {
   );
 
   const handleSendChat = useCallback(
-    async (text: string, displayMessage?: string) => {
+    async (text: string, displayName?: string) => { 
       if (!text) return;
 
       setChatProcessing(true);
-      const messageLog: Message[] = [...chatLog, { role: "user", content: displayMessage || text }];
-      setChatLog(messageLog);
+      
+      let messageLog: Message[] = [...chatLog];
+      let userMessageContent: string;
+      
+      if (displayName) {
+          // Mensaje de Restream: añadir al historial con el nombre del usuario
+          userMessageContent = text;
+          messageLog.push({ role: displayName, content: userMessageContent });
+      } else {
+          // Mensaje normal del input: añadir al historial con el rol "user"
+          userMessageContent = text;
+          messageLog.push({ role: "user", content: userMessageContent });
+      }
+      
+      setChatLog(messageLog); // Actualiza el historial inmediatamente
 
-      const processedMessages = new MessageMiddleOut().process([{ role: "system", content: systemPrompt }, ...messageLog]);
-
+      // Prepara los mensajes para la IA, formateando los mensajes de Restream como instrucciones.
+      const processedMessages = new MessageMiddleOut().process([
+          { role: "system", content: systemPrompt }, 
+          ...messageLog.map(msg => 
+              msg.role === "user" || msg.role === "assistant" 
+                  ? msg 
+                  : { role: "user", content: `[${msg.role}] ${msg.content}` } // Formatea displayName como [Nombre] Mensaje
+          )
+      ]);
+      
       const key = openRouterKey || process.env.NEXT_PUBLIC_OPENROUTER_API_KEY!;
       const stream = await getChatResponseStream(processedMessages, key, customErrorMessage, selectedModel).catch((e) => {
         console.error(e);
@@ -186,9 +206,10 @@ export default function Home() {
   );
 
   const handleTokensUpdate = useCallback((tokens: any) => setRestreamTokens(tokens), []);
+  
   const handleChatMessage = useCallback((message: ChatMessage) => {
-    const textToAI = `[${message.displayName}] ${message.text}`;
-    handleSendChat(textToAI);
+    // Al recibir el mensaje, pasamos el texto y el nombre de usuario
+    handleSendChat(message.text, message.displayName);
   }, [handleSendChat]);
 
   const handleClickResetAllSettings = useCallback(() => {
