@@ -3,7 +3,8 @@ import { KoeiroParam } from "../constants/koeiroParam";
 
 // ChatGPT API
 export type Message = {
-  role: "assistant" | "system" | "user";
+  // CORRECCIÓN: Ahora permite cualquier string además de los roles predefinidos
+  role: "assistant" | "system" | "user" | string; 
   content: string;
 };
 
