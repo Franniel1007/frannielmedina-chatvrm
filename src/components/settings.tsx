@@ -479,3 +479,38 @@ export const Settings = ({
               {renderContent()}
             </div>
           </div>
+        </div>
+      </div>
+
+      {showResetDialog && (
+        <div className="absolute z-50 w-full h-full bg-black/50 flex items-center justify-center">
+          <div className="bg-white p-24 rounded-lg shadow-xl text-center">
+            <div className="typography-24 font-bold text-red-500">¡Atención!</div>
+            <div className="my-16 text-text1">
+              ¿Estás seguro que deseas **reiniciar toda la configuración**? Esto será **irreversible**.
+            </div>
+            <div className="flex justify-center gap-8">
+              <TextButton onClick={handleConfirmReset} color="red">Sí, reiniciar</TextButton>
+              <TextButton onClick={() => setShowResetDialog(false)}>No, cancelar</TextButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showConfirmationDialog && (
+        <div className="absolute z-50 w-full h-full bg-black/50 flex items-center justify-center">
+          <div className="bg-white p-24 rounded-lg shadow-xl text-center">
+            <div className="typography-24 font-bold">¿Estás seguro?</div>
+            <div className="my-16 text-text1">
+              {confirmationMessage}
+            </div>
+            <div className="flex justify-center gap-8">
+              <TextButton onClick={handleConfirmAction}>Sí</TextButton>
+              <TextButton onClick={() => setShowConfirmationDialog(false)}>No</TextButton>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
