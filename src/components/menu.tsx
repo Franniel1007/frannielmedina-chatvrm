@@ -1,5 +1,3 @@
-// src/components/menu.tsx (Revertido a la versión sin i18n)
-
 import { IconButton } from "./iconButton";
 import { Message } from "@/features/messages/messages";
 import { ElevenLabsParam } from "@/features/constants/elevenLabsParam";
@@ -10,7 +8,6 @@ import { Settings } from "./settings";
 import { ViewerContext } from "@/features/vrmViewer/viewerContext";
 import { AssistantText } from "./assistantText";
 import { ChatMessage } from "./restreamTokens";
-// (Eliminar import LanguageCode)
 
 type Props = {
   openAiKey: string;
@@ -21,8 +18,7 @@ type Props = {
   koeiroParam: KoeiroParam;
   assistantMessage: string;
   onChangeSystemPrompt: (systemPrompt: string) => void;
-  // Volver al tipo que recibe de Index.tsx (asumo que es la cadena)
-  onChangeAiKey: (key: string) => void; 
+  onChangeAiKey: (key: string) => void;
   onChangeElevenLabsKey: (key: string) => void;
   onChangeChatLog: (index: number, text: string) => void;
   onChangeElevenLabsParam: (param: ElevenLabsParam) => void;
@@ -43,10 +39,6 @@ type Props = {
   onChangeSelectedModel: (event: React.ChangeEvent<HTMLSelectElement>) => void;
   onClickResetAllSettings: () => void;
   onClickResetVrm: () => void;
-  
-  // (Eliminar props de idioma)
-  // language: LanguageCode;
-  // setAppLanguage: (lang: LanguageCode) => void;
 };
 
 export const Menu = ({
@@ -79,10 +71,6 @@ export const Menu = ({
   onChangeSelectedModel,
   onClickResetAllSettings,
   onClickResetVrm,
-  
-  // (Eliminar desestructuración de idioma)
-  // language,
-  // setAppLanguage,
 }: Props) => {
   const [showSettings, setShowSettings] = useState(false);
   const [showChatLog, setShowChatLog] = useState(false);
@@ -109,17 +97,13 @@ export const Menu = ({
     },
     [onChangeSystemPrompt]
   );
-  
-  // --- FUNCIÓN WRAPPER PARA CORREGIR EL ERROR EN LA LÍNEA 233 ---
-  const handleAiKeyWrapper = useCallback(
+
+  const handleAiKeyChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      // <Settings /> me pasa el evento, yo extraigo la clave (cadena)
-      // y la paso a la prop onChangeAiKey de Menu.
-      onChangeAiKey(event.target.value); 
+      onChangeAiKey(event.target.value);
     },
     [onChangeAiKey]
   );
-  // ----------------------------------------------------------------
 
   const handleElevenLabsKeyChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -223,10 +207,7 @@ export const Menu = ({
           systemPrompt={systemPrompt}
           koeiroParam={koeiroParam}
           onClickClose={() => setShowSettings(false)}
-          
-          // Usar la función wrapper que recibe el evento
-          onChangeAiKey={handleAiKeyWrapper} 
-          
+          onChangeAiKey={handleAiKeyChange}
           onChangeElevenLabsKey={handleElevenLabsKeyChange}
           onChangeElevenLabsVoice={handleElevenLabsVoiceChange}
           onChangeSystemPrompt={handleChangeSystemPrompt}
@@ -248,10 +229,6 @@ export const Menu = ({
           onChangeSelectedModel={onChangeSelectedModel}
           onClickResetAllSettings={onClickResetAllSettings}
           onClickResetVrm={onClickResetVrm}
-          
-          // (Eliminar props de idioma)
-          // language={language}
-          // setAppLanguage={setAppLanguage}
         />
       )}
       {!showChatLog && assistantMessage && (
