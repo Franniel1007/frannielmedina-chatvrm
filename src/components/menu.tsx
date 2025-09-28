@@ -170,6 +170,9 @@ export const Menu = ({
 
   return (
     <>
+      {/* Este div contiene los botones de Configuración y Conversación.
+        Como el botón de GitHub no está aquí, no hay nada que modificar.
+      */}
       <div className="absolute z-10 m-24">
         <div className="grid grid-flow-col gap-[8px]">
           <IconButton
