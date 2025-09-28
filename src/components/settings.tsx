@@ -3,6 +3,7 @@ import { Message } from "@/features/messages/messages";
 import { ElevenLabsParam } from "@/features/constants/elevenLabsParam";
 import { KoeiroParam } from "@/features/constants/koeiroParam";
 import { IconButton } from "./iconButton";
+import { TextButton } from "./textButton"; // <-- ¡IMPORTACIÓN AÑADIDA PARA CORREGIR EL ERROR!
 import { SettingsModel } from "./settingsModel";
 import { SettingsVoice } from "./settingsVoice";
 import { SettingsVrm } from "./settingsVrm";
@@ -28,7 +29,6 @@ type Tab =
   | "model"
   | "chatSettings"
   | "voice"
-  | "vrmSettings"
   | "personalization"
   | "streaming"
   | "about";
@@ -65,10 +65,10 @@ type Props = {
   onClickResetAllSettings: () => void;
   onClickResetVrm: () => void;
 
-  // --- PROPS DE IDIOMA AÑADIDAS (SOLUCIÓN AL ERROR) ---
+  // --- PROPS DE IDIOMA ---
   language: LanguageCode;
   setAppLanguage: (lang: LanguageCode) => void;
-  // ----------------------------------------------------
+  // -----------------------
 };
 
 export const Settings = ({
@@ -102,8 +102,8 @@ export const Settings = ({
   onChangeSelectedModel,
   onClickResetAllSettings,
   onClickResetVrm,
-  language, // Desestructurada
-  setAppLanguage, // Desestructurada
+  language, 
+  setAppLanguage, 
 }: Props) => {
   const [currentTab, setCurrentTab] = useState<Tab>("general");
   const [isAlertVisible, setIsAlertVisible] = useState(false);
@@ -115,7 +115,9 @@ export const Settings = ({
   const optionsFileRef = useRef<HTMLInputElement>(null);
 
   // --- OBTENER TEXTOS DE I18N ---
-  const { texts } = useLanguage();
+  // Nota: Aunque recibimos 'language' por props, usamos 'useLanguage' para obtener los textos 
+  // ya que este hook ya contiene la lógica de obtención de textos (getUITexts(language)).
+  const { texts } = useLanguage(); 
   const t = texts.settings;
   // ------------------------------
 
@@ -139,14 +141,14 @@ export const Settings = ({
     setAlertType(type);
     setIsAlertVisible(true);
     setOnConfirmAction(null);
-  }, []);
+  }, []); // Dependencia vacía, ya que los setters son estables.
 
   const showConfirmation = useCallback((message: string, action: () => void) => {
     setAlertMessage(message);
     setAlertType("confirmation");
     setIsAlertVisible(true);
     setOnConfirmAction(() => action);
-  }, []);
+  }, []); // Dependencia vacía, ya que los setters son estables.
 
   const handleAlertClose = useCallback(() => {
     setIsAlertVisible(false);
@@ -215,11 +217,6 @@ export const Settings = ({
       if (config.elevenLabsKey) onChangeElevenLabsKey(config.elevenLabsKey);
       if (config.openRouterKey) onChangeOpenRouterKey({ target: { value: config.openRouterKey } } as ChangeEvent<HTMLInputElement>);
       if (config.systemPrompt) onChangeSystemPrompt({ target: { value: config.systemPrompt } } as ChangeEvent<HTMLTextAreaElement>);
-      if (config.elevenLabsParam) {
-        // Asumiendo que ElevenLabsParam es un objeto simple
-        // Esto solo cambia la voz, no se necesita el setter de Index.tsx
-        // setElevenLabsParam(config.elevenLabsParam); 
-      }
       if (config.koeiroParam) onChangeKoeiroParam(config.koeiroParam.speakerX, config.koeiroParam.speakerY);
       if (config.backgroundImage) onChangeBackgroundImage(config.backgroundImage);
       if (config.customErrorMessage) onChangeCustomErrorMessage(config.customErrorMessage);
@@ -238,6 +235,7 @@ export const Settings = ({
     }
   }, [
     t,
+    showAlert, // <-- Añadida para satisfacer al linter
     onChangeAiKey,
     onChangeElevenLabsKey,
     onChangeOpenRouterKey,
@@ -353,14 +351,7 @@ export const Settings = ({
         );
       case "about":
         return <SettingsAbout t={t} />;
-      case "vrmSettings": // Esta ya no se usa como pestaña principal, pero mantenemos por si acaso
-        return (
-          <SettingsVrm
-            onClickOpenVrmFile={onClickOpenVrmFile}
-            onClickResetVrm={handleResetVrm}
-          />
-        );
-      default:
+      default: // fallback a "general"
         return <SettingsGeneral
           openAiKey={openAiKey}
           elevenLabsKey={elevenLabsKey}
@@ -408,6 +399,7 @@ export const Settings = ({
                     : "text-text-primary hover:bg-surface3"
                 }`}
               >
+                {/* Nota: Asumo que tienes un componente Icon para renderizar '24/General', etc. */}
                 <div className={`w-5 h-5 ${currentTab === item.id ? "text-white" : "text-gray-600"}`} />
                 {item.label}
               </button>
@@ -463,7 +455,3 @@ export const Settings = ({
     </>
   );
 };
-
-// Nota: Debes asegurarte de que los componentes secundarios (SettingsGeneral, SettingsModel, etc.) 
-// también estén actualizados para recibir y usar la prop `t` (textos traducidos)
-// y las props `language`/`setAppLanguage` si es necesario.
