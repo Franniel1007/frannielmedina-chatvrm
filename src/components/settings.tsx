@@ -3,10 +3,9 @@ import { Message } from "@/features/messages/messages";
 import { ElevenLabsParam } from "@/features/constants/elevenLabsParam";
 import { KoeiroParam } from "@/features/constants/koeiroParam";
 import { IconButton } from "./iconButton";
-import { TextButton } from "./textButton"; // <-- ¡IMPORTACIÓN AÑADIDA PARA CORREGIR EL ERROR!
+import { TextButton } from "./textButton";
 import { SettingsModel } from "./settingsModel";
 import { SettingsVoice } from "./settingsVoice";
-import { SettingsVrm } from "./settingsVrm";
 import { SettingsCharacter } from "./settingsCharacter";
 import { SettingsChatLog } from "./settingsChatLog";
 import { SettingsGeneral } from "./settingsGeneral";
@@ -16,13 +15,10 @@ import { SettingsStreaming } from "./settingsStreaming";
 import { SettingsAbout } from "./settingsAbout";
 import { KoeiroMap } from "./koeiromap";
 import { ViewerContext } from "@/features/vrmViewer/viewerContext";
-import { buildUrl } from "@/utils/buildUrl";
 import { ChatMessage } from "./restreamTokens";
-
-// --- IMPORTACIONES DE IDIOMA Y DATOS ---
-import { LanguageCode, useLanguage, i18nTexts } from "@/features/i18n/i18n";
 import { CharacterNameInput } from "./characterNameInput";
-// ---------------------------------------
+
+// (Eliminar import LanguageCode)
 
 type Tab =
   | "general"
@@ -42,7 +38,8 @@ type Props = {
   elevenLabsParam: ElevenLabsParam;
   koeiroParam: KoeiroParam;
   onClickClose: () => void;
-  onChangeAiKey: (key: string) => void;
+  // <Settings /> espera el evento completo, que le llega de Menu.tsx
+  onChangeAiKey: (event: React.ChangeEvent<HTMLInputElement>) => void; 
   onChangeElevenLabsKey: (key: string) => void;
   onChangeElevenLabsVoice: (event: React.ChangeEvent<HTMLSelectElement>) => void;
   onChangeSystemPrompt: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
@@ -65,10 +62,9 @@ type Props = {
   onClickResetAllSettings: () => void;
   onClickResetVrm: () => void;
 
-  // --- PROPS DE IDIOMA ---
-  language: LanguageCode;
-  setAppLanguage: (lang: LanguageCode) => void;
-  // -----------------------
+  // (Eliminar props de idioma)
+  // language: LanguageCode;
+  // setAppLanguage: (lang: LanguageCode) => void;
 };
 
 export const Settings = ({
@@ -102,8 +98,9 @@ export const Settings = ({
   onChangeSelectedModel,
   onClickResetAllSettings,
   onClickResetVrm,
-  language, 
-  setAppLanguage, 
+  // (Eliminar desestructuración de idioma)
+  // language, 
+  // setAppLanguage, 
 }: Props) => {
   const [currentTab, setCurrentTab] = useState<Tab>("general");
   const [isAlertVisible, setIsAlertVisible] = useState(false);
@@ -114,12 +111,29 @@ export const Settings = ({
   const { viewer } = useContext(ViewerContext);
   const optionsFileRef = useRef<HTMLInputElement>(null);
 
-  // --- OBTENER TEXTOS DE I18N ---
-  // Nota: Aunque recibimos 'language' por props, usamos 'useLanguage' para obtener los textos 
-  // ya que este hook ya contiene la lógica de obtención de textos (getUITexts(language)).
-  const { texts } = useLanguage(); 
-  const t = texts.settings;
-  // ------------------------------
+  // --- TEXTOS LOCALIZADOS (Usaremos un placeholder simple) ---
+  const t = {
+    title: "Settings",
+    general: "General",
+    model: "Model",
+    chatSettings: "Chat Settings",
+    voiceSelection: "Voice",
+    personalization: "Personalization",
+    streaming: "Streaming",
+    about: "About",
+    confirmations: {
+        resetVrm: "Are you sure you want to reset the VRM?",
+        resetAll: "Are you sure you want to reset all settings?",
+        areYouSure: "Are you sure?",
+    },
+    noCancel: "No, Cancel",
+    yesReset: "Yes, Reset",
+    alerts: {
+      loadSuccess: "Configuration loaded successfully!",
+      loadError: "Error loading configuration. Check the file format.",
+    },
+  };
+  // -----------------------------------------------------------
 
   const tabItems = useMemo(() => [
     { id: "general" as Tab, label: t.general, icon: "24/General" },
@@ -141,14 +155,14 @@ export const Settings = ({
     setAlertType(type);
     setIsAlertVisible(true);
     setOnConfirmAction(null);
-  }, []); // Dependencia vacía, ya que los setters son estables.
+  }, []);
 
   const showConfirmation = useCallback((message: string, action: () => void) => {
     setAlertMessage(message);
     setAlertType("confirmation");
     setIsAlertVisible(true);
     setOnConfirmAction(() => action);
-  }, []); // Dependencia vacía, ya que los setters son estables.
+  }, []);
 
   const handleAlertClose = useCallback(() => {
     setIsAlertVisible(false);
@@ -179,7 +193,7 @@ export const Settings = ({
       customErrorMessage,
       characterName,
       selectedModel,
-      language,
+      // language, // Eliminado
     };
     const blob = new Blob([JSON.stringify(config, null, 2)], {
       type: "application/json",
@@ -201,7 +215,7 @@ export const Settings = ({
     customErrorMessage,
     characterName,
     selectedModel,
-    language,
+    // language, // Eliminado
   ]);
 
   const handleLoadOptions = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
@@ -213,16 +227,17 @@ export const Settings = ({
       const config = JSON.parse(text);
 
       // Aplicar la configuración
-      if (config.openAiKey) onChangeAiKey(config.openAiKey);
+      if (config.openAiKey) onChangeAiKey({ target: { value: config.openAiKey } } as ChangeEvent<HTMLInputElement>); // Convertir a evento
       if (config.elevenLabsKey) onChangeElevenLabsKey(config.elevenLabsKey);
       if (config.openRouterKey) onChangeOpenRouterKey({ target: { value: config.openRouterKey } } as ChangeEvent<HTMLInputElement>);
       if (config.systemPrompt) onChangeSystemPrompt({ target: { value: config.systemPrompt } } as ChangeEvent<HTMLTextAreaElement>);
+      // if (config.elevenLabsParam) { /* Lógica de ElevenLabsParam */ }
       if (config.koeiroParam) onChangeKoeiroParam(config.koeiroParam.speakerX, config.koeiroParam.speakerY);
       if (config.backgroundImage) onChangeBackgroundImage(config.backgroundImage);
       if (config.customErrorMessage) onChangeCustomErrorMessage(config.customErrorMessage);
       if (config.characterName) onChangeCharacterName({ target: { value: config.characterName } } as ChangeEvent<HTMLInputElement>);
       if (config.selectedModel) onChangeSelectedModel({ target: { value: config.selectedModel } } as ChangeEvent<HTMLSelectElement>);
-      if (config.language) setAppLanguage(config.language);
+      // if (config.language) setAppLanguage(config.language); // Eliminado
       
       showAlert(t.alerts.loadSuccess, "success");
 
@@ -230,12 +245,11 @@ export const Settings = ({
       console.error(e);
       showAlert(t.alerts.loadError, "error");
     } finally {
-      // Limpiar el input file para que se pueda cargar el mismo archivo de nuevo
       event.target.value = ""; 
     }
   }, [
     t,
-    showAlert, // <-- Añadida para satisfacer al linter
+    showAlert,
     onChangeAiKey,
     onChangeElevenLabsKey,
     onChangeOpenRouterKey,
@@ -245,7 +259,7 @@ export const Settings = ({
     onChangeCustomErrorMessage,
     onChangeCharacterName,
     onChangeSelectedModel,
-    setAppLanguage
+    // setAppLanguage // Eliminado
   ]);
 
 
@@ -281,9 +295,9 @@ export const Settings = ({
             onChangeCustomErrorMessage={onChangeCustomErrorMessage}
             handleSaveOptions={handleSaveOptions}
             handleLoadOptions={() => optionsFileRef.current?.click()}
-            t={t} // Pasamos los textos traducidos
-            language={language}
-            setAppLanguage={setAppLanguage}
+            t={t} 
+            // language={language} // Eliminado
+            // setAppLanguage={setAppLanguage} // Eliminado
           />
         );
       case "model":
@@ -336,7 +350,7 @@ export const Settings = ({
             backgroundImage={backgroundImage}
             onChangeBackgroundImage={onChangeBackgroundImage}
             onClickOpenVrmFile={onClickOpenVrmFile}
-            onClickResetVrm={handleResetVrm} // Usamos el manejador con confirmación
+            onClickResetVrm={handleResetVrm} 
             viewer={viewer}
             t={t}
           />
@@ -351,7 +365,7 @@ export const Settings = ({
         );
       case "about":
         return <SettingsAbout t={t} />;
-      default: // fallback a "general"
+      default:
         return <SettingsGeneral
           openAiKey={openAiKey}
           elevenLabsKey={elevenLabsKey}
@@ -364,8 +378,6 @@ export const Settings = ({
           handleSaveOptions={handleSaveOptions}
           handleLoadOptions={() => optionsFileRef.current?.click()}
           t={t}
-          language={language}
-          setAppLanguage={setAppLanguage}
         />;
     }
   };
@@ -399,7 +411,6 @@ export const Settings = ({
                     : "text-text-primary hover:bg-surface3"
                 }`}
               >
-                {/* Nota: Asumo que tienes un componente Icon para renderizar '24/General', etc. */}
                 <div className={`w-5 h-5 ${currentTab === item.id ? "text-white" : "text-gray-600"}`} />
                 {item.label}
               </button>
