@@ -23,7 +23,11 @@ type Props = {
   koeiroParam: KoeiroParam;
   assistantMessage: string;
   onChangeSystemPrompt: (systemPrompt: string) => void;
-  onChangeAiKey: (key: string) => void;
+  
+  // ¡CORRECCIÓN AQUÍ!
+  // La función `handleAiKeyChange` recibe un evento, por lo tanto, la prop debe recibir un evento.
+  onChangeAiKey: (event: React.ChangeEvent<HTMLInputElement>) => void; // <-- ¡TIPO DE PROP CORREGIDO!
+  
   onChangeElevenLabsKey: (key: string) => void;
   onChangeChatLog: (index: number, text: string) => void;
   onChangeElevenLabsParam: (param: ElevenLabsParam) => void;
@@ -111,9 +115,12 @@ export const Menu = ({
     [onChangeSystemPrompt]
   );
 
+  // ESTA FUNCIÓN ESTABA CAUSANDO EL ERROR DE TIPO CON LA PROP. 
+  // Ahora que la prop acepta un evento, podemos pasar `event` directamente.
   const handleAiKeyChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      onChangeAiKey(event.target.value);
+      // Pasa el evento al manejador del padre (Index.tsx)
+      onChangeAiKey(event);
     },
     [onChangeAiKey]
   );
@@ -220,7 +227,11 @@ export const Menu = ({
           systemPrompt={systemPrompt}
           koeiroParam={koeiroParam}
           onClickClose={() => setShowSettings(false)}
-          onChangeAiKey={handleAiKeyChange}
+          
+          // Ahora pasamos la función que recibe el evento (handleAiKeyChange)
+          // que coincide con la prop que espera Settings (que espera el evento)
+          onChangeAiKey={handleAiKeyChange} 
+          
           onChangeElevenLabsKey={handleElevenLabsKeyChange}
           onChangeElevenLabsVoice={handleElevenLabsVoiceChange}
           onChangeSystemPrompt={handleChangeSystemPrompt}
