@@ -1,127 +1,271 @@
-// src/features/openAiChat.tsx
+// src/components/menu.tsx (Actualizado para i18n y corregido el Type Error)
 
-// NOTA: Si `messages` está en el mismo directorio (features), usa "./messages"
-// Si está en un directorio hermano de features, la ruta original está bien, pero es poco común.
-// La mantengo como la proporcionaste, asumiendo que tienes una estructura de módulos específica.
-import { Message } from "../messages/messages";
-import { getWindowAI } from 'window.ai'; // No se usa, se puede eliminar si no se implementa.
+import { IconButton } from "./iconButton";
+import { Message } from "@/features/messages/messages";
+import { ElevenLabsParam } from "@/features/constants/elevenLabsParam";
+import { KoeiroParam } from "@/features/constants/koeiroParam";
+import { ChatLog } from "./chatLog";
+import React, { useCallback, useContext, useRef, useState, useEffect } from "react";
+import { Settings } from "./settings";
+import { ViewerContext } from "@/features/vrmViewer/viewerContext";
+import { AssistantText } from "./assistantText";
+import { ChatMessage } from "./restreamTokens";
 
-export async function getChatResponse(messages: Message[], apiKey: string) {
-  throw new Error("Not implemented");
-}
+// --- IMPORTAR TIPOS DE IDIOMA ---
+import { LanguageCode } from "@/features/i18n/i18n"; 
 
-export async function getChatResponseStream(
-  messages: Message[],
-  openRouterKey: string,
-  customErrorMessage: string,
-  selectedModel: string // --- AÑADIR: El modelo seleccionado ---
-) {
-  console.log('getChatResponseStream');
-  console.log('messages');
-  console.log(messages);
+type Props = {
+  openAiKey: string;
+  elevenLabsKey: string;
+  systemPrompt: string;
+  chatLog: Message[];
+  elevenLabsParam: ElevenLabsParam;
+  koeiroParam: KoeiroParam;
+  assistantMessage: string;
+  onChangeSystemPrompt: (systemPrompt: string) => void;
+  
+  // ¡CORRECCIÓN! Vuelve al tipo que espera el padre (Index.tsx)
+  onChangeAiKey: (key: string) => void; 
+  
+  onChangeElevenLabsKey: (key: string) => void;
+  onChangeChatLog: (index: number, text: string) => void;
+  onChangeElevenLabsParam: (param: ElevenLabsParam) => void;
+  onChangeKoeiromapParam: (param: KoeiroParam) => void;
+  handleClickResetChatLog: () => void;
+  handleClickResetSystemPrompt: () => void;
+  backgroundImage: string;
+  onChangeBackgroundImage: (value: string) => void;
+  onChatMessage: (message: ChatMessage) => void;
+  onTokensUpdate: (tokens: any) => void;
+  onChangeOpenRouterKey: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  openRouterKey: string;
+  customErrorMessage: string;
+  onChangeCustomErrorMessage: (message: string) => void;
+  characterName: string;
+  onChangeCharacterName: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  selectedModel: string;
+  onChangeSelectedModel: (event: React.ChangeEvent<HTMLSelectElement>) => void;
+  onClickResetAllSettings: () => void;
+  onClickResetVrm: () => void;
+  
+  // --- PROPS DE IDIOMA AÑADIDAS ---
+  language: LanguageCode;
+  setAppLanguage: (lang: LanguageCode) => void;
+};
 
-  // --- Manejo de la clave de API en blanco ---
-  if (!openRouterKey || openRouterKey.trim() === "") {
-    const stream = new ReadableStream({
-      start(controller) {
-        controller.enqueue("Necesitas la API de OpenRouter ve a la Configuración > APIs");
-        controller.close();
-      },
-    });
-    return stream;
-  }
+export const Menu = ({
+  openAiKey,
+  elevenLabsKey,
+  openRouterKey,
+  systemPrompt,
+  chatLog,
+  elevenLabsParam,
+  koeiroParam,
+  assistantMessage,
+  onChangeSystemPrompt,
+  onChangeAiKey,
+  onChangeElevenLabsKey,
+  onChangeChatLog,
+  onChangeElevenLabsParam,
+  onChangeKoeiromapParam,
+  handleClickResetChatLog,
+  handleClickResetSystemPrompt,
+  backgroundImage,
+  onChangeBackgroundImage,
+  onChatMessage,
+  onTokensUpdate,
+  onChangeOpenRouterKey,
+  customErrorMessage,
+  onChangeCustomErrorMessage,
+  characterName,
+  onChangeCharacterName,
+  selectedModel,
+  onChangeSelectedModel,
+  onClickResetAllSettings,
+  onClickResetVrm,
+  
+  // --- DESESTRUCTURAR PROPS DE IDIOMA ---
+  language,
+  setAppLanguage,
+}: Props) => {
+  const [showSettings, setShowSettings] = useState(false);
+  const [showChatLog, setShowChatLog] = useState(false);
+  const { viewer } = useContext(ViewerContext);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const stream = new ReadableStream({
-    async start(controller: ReadableStreamDefaultController) {
-      try {
-        const OPENROUTER_API_KEY = openRouterKey;
-        const YOUR_SITE_URL = 'https://chat-vrm-window.vercel.app/';
-        const YOUR_SITE_NAME = 'ChatVRM';
+  useEffect(() => {
+    const savedVrmUrl = localStorage.getItem('vrmUrl');
+    if (savedVrmUrl && savedVrmUrl.startsWith('blob:')) {
+      viewer.loadVrm(savedVrmUrl);
+    }
+  }, [viewer]);
 
-        const generation = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-            "HTTP-Referer": `${YOUR_SITE_URL}`,
-            "X-Title": `${YOUR_SITE_NAME}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            // --- USAR: El modelo seleccionado ---
-            "model": selectedModel, 
-            "messages": messages,
-            "temperature": 0.7,
-            "max_tokens": 200,
-            "stream": true,
-          })
-        });
+  useEffect(() => {
+    const savedBackground = localStorage.getItem('backgroundImage');
+    if (savedBackground) {
+      onChangeBackgroundImage(savedBackground);
+    }
+  }, [onChangeBackgroundImage]);
 
-        // --- Manejo de la API incorrecta o caída ---
-        if (!generation.ok) {
-          const errorText = await generation.text();
-          console.error("Error from OpenRouter API:", generation.status, errorText);
-
-          if (generation.status === 401 || generation.status === 403) {
-            // El mensaje de error fue "La API de OpenRouter no funciona o es incorrecta."
-            controller.enqueue("La API de OpenRouter no funciona o es incorrecta.");
-          } else {
-            // Usa el mensaje personalizado para otros errores del servidor
-            controller.enqueue(customErrorMessage);
-          }
-          controller.close();
-          return;
-        }
-
-        if (generation.body) {
-          const reader = generation.body.getReader();
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-
-              let chunk = new TextDecoder().decode(value);
-              let lines = chunk.split('\n');
-              
-              // Filtrar líneas de procesamiento y de finalización
-              lines = lines.filter((line) => !line.trim().startsWith(": OPENROUTER PROCESSING"));
-              lines = lines.filter((line) => !line.trim().endsWith("data: [DONE]"));
-
-              const dataLines = lines.filter(line => line.startsWith("data:"));
-
-              const messages = dataLines.map(line => {
-                const jsonStr = line.substring(5);
-                return JSON.parse(jsonStr);
-              });
-
-              try {
-                messages.forEach((message) => {
-                  const content = message.choices[0].delta.content;
-                  // Solo encolar si hay contenido para evitar chunks vacíos
-                  if (content) { 
-                    controller.enqueue(content);
-                  }
-                });
-              } catch (error) {
-                console.error('error processing messages:', messages, error);
-                throw error;
-              }
-            }
-          } catch (error) {
-            console.error('Error reading the stream', error);
-          } finally {
-            reader.releaseLock();
-          }
-        }
-      } catch (error) {
-        console.error('Error in getChatResponseStream:', error);
-        // Usa el mensaje personalizado para errores de red o del navegador
-        controller.enqueue(customErrorMessage);
-        controller.close();
-      } finally {
-        controller.close();
-      }
+  const handleChangeSystemPrompt = useCallback(
+    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+      onChangeSystemPrompt(event.target.value);
     },
-  });
+    [onChangeSystemPrompt]
+  );
+  
+  // --- FUNCIÓN handleAiKeyChange ELIMINADA (REDUNDANTE) ---
 
-  return stream;
-}
+  const handleElevenLabsKeyChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      onChangeElevenLabsKey(event.target.value);
+    },
+    [onChangeElevenLabsKey]
+  );
+
+  const handleElevenLabsVoiceChange = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      onChangeElevenLabsParam({
+        voiceId: event.target.value
+      });
+    },
+    [onChangeElevenLabsParam]
+  );
+
+  const handleChangeKoeiroParam = useCallback(
+    (x: number, y: number) => {
+      onChangeKoeiromapParam({
+        speakerX: x,
+        speakerY: y,
+      });
+    },
+    [onChangeKoeiromapParam]
+  );
+
+  const handleClickOpenVrmFile = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleChangeVrmFile = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const files = event.target.files;
+      if (!files) return;
+
+      const file = files[0];
+      if (!file) return;
+
+      const file_type = file.name.split(".").pop();
+
+      if (file_type === "vrm") {
+        const blob = new Blob([file], { type: "application/octet-stream" });
+        const url = window.URL.createObjectURL(blob);
+        viewer.loadVrm(url);
+        localStorage.setItem('vrmUrl', url);
+      }
+
+      event.target.value = "";
+    },
+    [viewer]
+  );
+
+  const handleBackgroundImageChange = (image: string) => {
+    onChangeBackgroundImage(image);
+  };
+
+  const handleChangeCustomErrorMessage = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      onChangeCustomErrorMessage(event.target.value);
+    },
+    [onChangeCustomErrorMessage]
+  );
+
+  return (
+    <>
+      <div className="absolute z-10 m-24">
+        <div className="grid grid-flow-col gap-[8px]">
+          <IconButton
+            iconName="24/Menu"
+            label="Settings"
+            isProcessing={false}
+            onClick={() => setShowSettings(true)}
+          />
+          {showChatLog ? (
+            <IconButton
+              iconName="24/CommentOutline"
+              label="Conversation Log"
+              isProcessing={false}
+              onClick={() => setShowChatLog(false)}
+            />
+          ) : (
+            <IconButton
+              iconName="24/CommentFill"
+              label="Conversation Log"
+              isProcessing={false}
+              disabled={chatLog.length <= 0}
+              onClick={() => setShowChatLog(true)}
+            />
+          )}
+        </div>
+      </div>
+      {showChatLog && <ChatLog messages={chatLog} />}
+      {showSettings && (
+        <Settings
+          openAiKey={openAiKey}
+          elevenLabsKey={elevenLabsKey}
+          openRouterKey={openRouterKey}
+          elevenLabsParam={elevenLabsParam}
+          chatLog={chatLog}
+          systemPrompt={systemPrompt}
+          koeiroParam={koeiroParam}
+          onClickClose={() => setShowSettings(false)}
+          
+          // --- WRAPPER CORREGIDO ---
+          // Esta función cumple el contrato de <Settings /> (recibe evento)
+          // y luego llama a la prop de Menu (onChangeAiKey) con la cadena.
+          onChangeAiKey={useCallback(
+            (event: React.ChangeEvent<HTMLInputElement>) => {
+              onChangeAiKey(event.target.value);
+            },
+            [onChangeAiKey]
+          )}
+          
+          onChangeElevenLabsKey={handleElevenLabsKeyChange}
+          onChangeElevenLabsVoice={handleElevenLabsVoiceChange}
+          onChangeSystemPrompt={handleChangeSystemPrompt}
+          onChangeChatLog={onChangeChatLog}
+          onChangeKoeiroParam={handleChangeKoeiroParam}
+          onClickOpenVrmFile={handleClickOpenVrmFile}
+          onClickResetChatLog={handleClickResetChatLog}
+          onClickResetSystemPrompt={handleClickResetSystemPrompt}
+          backgroundImage={backgroundImage}
+          onChangeBackgroundImage={handleBackgroundImageChange}
+          onTokensUpdate={onTokensUpdate}
+          onChatMessage={onChatMessage}
+          onChangeOpenRouterKey={onChangeOpenRouterKey}
+          customErrorMessage={customErrorMessage}
+          onChangeCustomErrorMessage={handleChangeCustomErrorMessage}
+          characterName={characterName}
+          onChangeCharacterName={onChangeCharacterName}
+          selectedModel={selectedModel}
+          onChangeSelectedModel={onChangeSelectedModel}
+          onClickResetAllSettings={onClickResetAllSettings}
+          onClickResetVrm={onClickResetVrm}
+          
+          // --- PROPS DE IDIOMA PASADAS A SETTINGS ---
+          language={language}
+          setAppLanguage={setAppLanguage}
+        />
+      )}
+      {!showChatLog && assistantMessage && (
+        <AssistantText message={assistantMessage} characterName={characterName} />
+      )}
+      <input
+        type="file"
+        className="hidden"
+        accept=".vrm"
+        ref={fileInputRef}
+        onChange={handleChangeVrmFile}
+      />
+    </>
+  );
+};
