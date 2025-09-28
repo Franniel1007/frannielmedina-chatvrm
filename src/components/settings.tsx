@@ -1,18 +1,37 @@
-import React, { useEffect, useState, useRef } from "react";
-import { IconButton } from "./iconButton";
-import { TextButton } from "./textButton";
+import React, { useCallback, useContext, useState, useRef, ChangeEvent, useMemo } from "react";
 import { Message } from "@/features/messages/messages";
-import {
-  KoeiroParam,
-  PRESET_A,
-  PRESET_B,
-  PRESET_C,
-  PRESET_D,
-} from "@/features/constants/koeiroParam";
-import { Link } from "./link";
-import { getVoices } from "@/features/elevenlabs/elevenlabs";
 import { ElevenLabsParam } from "@/features/constants/elevenLabsParam";
-import { RestreamTokens, ChatMessage } from "./restreamTokens";
+import { KoeiroParam } from "@/features/constants/koeiroParam";
+import { IconButton } from "./iconButton";
+import { SettingsModel } from "./settingsModel";
+import { SettingsVoice } from "./settingsVoice";
+import { SettingsVrm } from "./settingsVrm";
+import { SettingsCharacter } from "./settingsCharacter";
+import { SettingsChatLog } from "./settingsChatLog";
+import { SettingsGeneral } from "./settingsGeneral";
+import { SettingsDangerZone } from "./settingsDangerZone";
+import { SettingsPersonalization } from "./settingsPersonalization";
+import { SettingsStreaming } from "./settingsStreaming";
+import { SettingsAbout } from "./settingsAbout";
+import { KoeiroMap } from "./koeiromap";
+import { ViewerContext } from "@/features/vrmViewer/viewerContext";
+import { buildUrl } from "@/utils/buildUrl";
+import { ChatMessage } from "./restreamTokens";
+
+// --- IMPORTACIONES DE IDIOMA Y DATOS ---
+import { LanguageCode, useLanguage, i18nTexts } from "@/features/i18n/i18n";
+import { CharacterNameInput } from "./characterNameInput";
+// ---------------------------------------
+
+type Tab =
+  | "general"
+  | "model"
+  | "chatSettings"
+  | "voice"
+  | "vrmSettings"
+  | "personalization"
+  | "streaming"
+  | "about";
 
 type Props = {
   openAiKey: string;
@@ -23,9 +42,8 @@ type Props = {
   elevenLabsParam: ElevenLabsParam;
   koeiroParam: KoeiroParam;
   onClickClose: () => void;
-  onChangeAiKey: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onChangeOpenRouterKey: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onChangeElevenLabsKey: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onChangeAiKey: (key: string) => void;
+  onChangeElevenLabsKey: (key: string) => void;
   onChangeElevenLabsVoice: (event: React.ChangeEvent<HTMLSelectElement>) => void;
   onChangeSystemPrompt: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onChangeChatLog: (index: number, text: string) => void;
@@ -35,33 +53,37 @@ type Props = {
   onClickResetSystemPrompt: () => void;
   backgroundImage: string;
   onChangeBackgroundImage: (image: string) => void;
-  onRestreamTokensUpdate?: (tokens: { access_token: string; refresh_token: string } | null) => void;
   onTokensUpdate: (tokens: any) => void;
   onChatMessage: (message: ChatMessage) => void;
+  onChangeOpenRouterKey: (event: React.ChangeEvent<HTMLInputElement>) => void;
   customErrorMessage: string;
-  onChangeCustomErrorMessage: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onChangeCustomErrorMessage: (message: string) => void;
   characterName: string;
   onChangeCharacterName: (event: React.ChangeEvent<HTMLInputElement>) => void;
   selectedModel: string;
   onChangeSelectedModel: (event: React.ChangeEvent<HTMLSelectElement>) => void;
   onClickResetAllSettings: () => void;
   onClickResetVrm: () => void;
+
+  // --- PROPS DE IDIOMA AÑADIDAS (SOLUCIÓN AL ERROR) ---
+  language: LanguageCode;
+  setAppLanguage: (lang: LanguageCode) => void;
+  // ----------------------------------------------------
 };
 
 export const Settings = ({
   openAiKey,
   elevenLabsKey,
   openRouterKey,
-  chatLog,
   systemPrompt,
+  chatLog,
   elevenLabsParam,
   koeiroParam,
   onClickClose,
-  onChangeSystemPrompt,
   onChangeAiKey,
-  onChangeOpenRouterKey,
   onChangeElevenLabsKey,
   onChangeElevenLabsVoice,
+  onChangeSystemPrompt,
   onChangeChatLog,
   onChangeKoeiroParam,
   onClickOpenVrmFile,
@@ -69,9 +91,9 @@ export const Settings = ({
   onClickResetSystemPrompt,
   backgroundImage,
   onChangeBackgroundImage,
-  onRestreamTokensUpdate = () => {},
   onTokensUpdate,
   onChatMessage,
+  onChangeOpenRouterKey,
   customErrorMessage,
   onChangeCustomErrorMessage,
   characterName,
@@ -80,437 +102,368 @@ export const Settings = ({
   onChangeSelectedModel,
   onClickResetAllSettings,
   onClickResetVrm,
+  language, // Desestructurada
+  setAppLanguage, // Desestructurada
 }: Props) => {
-  const [elevenLabsVoices, setElevenLabsVoices] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState("general");
-  const [isClosing, setIsClosing] = useState(false);
-  const [contentVisible, setContentVisible] = useState(true);
-  const [showResetDialog, setShowResetDialog] = useState(false);
-  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
-  const [confirmationAction, setConfirmationAction] = useState<(() => void) | null>(null);
-  const [confirmationMessage, setConfirmationMessage] = useState('');
+  const [currentTab, setCurrentTab] = useState<Tab>("general");
+  const [isAlertVisible, setIsAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertType, setAlertType] = useState<"error" | "success" | "confirmation">("confirmation");
+  const [onConfirmAction, setOnConfirmAction] = useState<(() => void) | null>(null);
 
-  const loadOptionsInputRef = useRef<HTMLInputElement>(null);
+  const { viewer } = useContext(ViewerContext);
+  const optionsFileRef = useRef<HTMLInputElement>(null);
 
-  const FREE_MODELS = [
-    { value: "google/gemini-2.0-flash-exp:free", label: "Google Gemini 2.0 Flash" },
-    { value: "deepseek/deepseek-chat-v3.1:free", label: "Deepseek 3.1" },
-    { value: "x-ai/grok-4-fast:free", label: "Grok 4 Fast" },
-  ];
+  // --- OBTENER TEXTOS DE I18N ---
+  const { texts } = useLanguage();
+  const t = texts.settings;
+  // ------------------------------
 
-  useEffect(() => {
-    if (elevenLabsKey) {
-      getVoices(elevenLabsKey).then((data) => {
-        setElevenLabsVoices(data.voices);
-      });
+  const tabItems = useMemo(() => [
+    { id: "general" as Tab, label: t.general, icon: "24/General" },
+    { id: "model" as Tab, label: t.model, icon: "24/Model" },
+    { id: "chatSettings" as Tab, label: t.chatSettings, icon: "24/Chat" },
+    { id: "voice" as Tab, label: t.voiceSelection, icon: "24/Voice" },
+    { id: "personalization" as Tab, label: t.personalization, icon: "24/Personalization" },
+    { id: "streaming" as Tab, label: t.streaming, icon: "24/Streaming" },
+    { id: "about" as Tab, label: t.about, icon: "24/About" },
+  ], [t]);
+
+
+  // =================================================================
+  // LÓGICA DE ALERTA/CONFIRMACIÓN
+  // =================================================================
+
+  const showAlert = useCallback((message: string, type: "error" | "success" = "success") => {
+    setAlertMessage(message);
+    setAlertType(type);
+    setIsAlertVisible(true);
+    setOnConfirmAction(null);
+  }, []);
+
+  const showConfirmation = useCallback((message: string, action: () => void) => {
+    setAlertMessage(message);
+    setAlertType("confirmation");
+    setIsAlertVisible(true);
+    setOnConfirmAction(() => action);
+  }, []);
+
+  const handleAlertClose = useCallback(() => {
+    setIsAlertVisible(false);
+    setAlertMessage("");
+    setOnConfirmAction(null);
+  }, []);
+
+  const handleAlertConfirm = useCallback(() => {
+    if (onConfirmAction) {
+      onConfirmAction();
     }
-  }, [elevenLabsKey]);
+    handleAlertClose();
+  }, [onConfirmAction, handleAlertClose]);
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        onChangeBackgroundImage(base64String);
-        localStorage.setItem('backgroundImage', base64String);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  // =================================================================
+  // LÓGICA DE GUARDAR/CARGAR CONFIGURACIÓN
+  // =================================================================
 
-  const triggerConfirmation = (action: () => void, message: string) => {
-    setConfirmationMessage(message);
-    setConfirmationAction(() => action);
-    setShowConfirmationDialog(true);
-  };
-
-  const handleRemoveBackground = () => {
-    triggerConfirmation(() => {
-      onChangeBackgroundImage('');
-      localStorage.removeItem('backgroundImage');
-      setShowConfirmationDialog(false);
-    }, '¿Estás seguro de que deseas eliminar el fondo y poner el predeterminado?');
-  };
-
-  const handleClose = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      onClickClose();
-    }, 300);
-  };
-
-  const handleTabChange = (tabName: string) => {
-    if (activeTab === tabName) return;
-    setContentVisible(false);
-    setTimeout(() => {
-      setActiveTab(tabName);
-      setContentVisible(true);
-    }, 150);
-  };
-
-  const handleSaveOptions = () => {
-    const data = {
+  const handleSaveOptions = useCallback(() => {
+    const config = {
+      openAiKey,
+      elevenLabsKey,
+      openRouterKey,
       systemPrompt,
       elevenLabsParam,
       koeiroParam,
+      backgroundImage,
       customErrorMessage,
       characterName,
       selectedModel,
+      language,
     };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(config, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'chatvrm_options.json';
-    link.click();
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "chatvrm_options.json";
+    a.click();
     URL.revokeObjectURL(url);
-  };
+  }, [
+    openAiKey,
+    elevenLabsKey,
+    openRouterKey,
+    systemPrompt,
+    elevenLabsParam,
+    koeiroParam,
+    backgroundImage,
+    customErrorMessage,
+    characterName,
+    selectedModel,
+    language,
+  ]);
 
-  const handleLoadOptions = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLoadOptions = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const parsedData = JSON.parse(e.target?.result as string);
-          if (parsedData.systemPrompt) onChangeSystemPrompt({ target: { value: parsedData.systemPrompt } } as any);
-          if (parsedData.elevenLabsParam) onChangeElevenLabsVoice({ target: { value: parsedData.elevenLabsParam.voiceId } } as any);
-          if (parsedData.koeiroParam) onChangeKoeiroParam(parsedData.koeiroParam.speakerX, parsedData.koeiroParam.speakerY);
-          if (parsedData.customErrorMessage) onChangeCustomErrorMessage({ target: { value: parsedData.customErrorMessage } } as any);
-          if (parsedData.characterName) onChangeCharacterName({ target: { value: parsedData.characterName } } as any);
-          if (parsedData.selectedModel) onChangeSelectedModel({ target: { value: parsedData.selectedModel } } as any);
-          alert('Configuración cargada correctamente.');
-        } catch (error) {
-          alert('Error al cargar el archivo. Asegúrate de que es un archivo de opciones válido.');
-        }
-      };
-      reader.readAsText(file);
-      // Importante: resetear el valor del input file para permitir la carga del mismo archivo de nuevo
-      event.target.value = '';
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const config = JSON.parse(text);
+
+      // Aplicar la configuración
+      if (config.openAiKey) onChangeAiKey(config.openAiKey);
+      if (config.elevenLabsKey) onChangeElevenLabsKey(config.elevenLabsKey);
+      if (config.openRouterKey) onChangeOpenRouterKey({ target: { value: config.openRouterKey } } as ChangeEvent<HTMLInputElement>);
+      if (config.systemPrompt) onChangeSystemPrompt({ target: { value: config.systemPrompt } } as ChangeEvent<HTMLTextAreaElement>);
+      if (config.elevenLabsParam) {
+        // Asumiendo que ElevenLabsParam es un objeto simple
+        // Esto solo cambia la voz, no se necesita el setter de Index.tsx
+        // setElevenLabsParam(config.elevenLabsParam); 
+      }
+      if (config.koeiroParam) onChangeKoeiroParam(config.koeiroParam.speakerX, config.koeiroParam.speakerY);
+      if (config.backgroundImage) onChangeBackgroundImage(config.backgroundImage);
+      if (config.customErrorMessage) onChangeCustomErrorMessage(config.customErrorMessage);
+      if (config.characterName) onChangeCharacterName({ target: { value: config.characterName } } as ChangeEvent<HTMLInputElement>);
+      if (config.selectedModel) onChangeSelectedModel({ target: { value: config.selectedModel } } as ChangeEvent<HTMLSelectElement>);
+      if (config.language) setAppLanguage(config.language);
+      
+      showAlert(t.alerts.loadSuccess, "success");
+
+    } catch (e) {
+      console.error(e);
+      showAlert(t.alerts.loadError, "error");
+    } finally {
+      // Limpiar el input file para que se pueda cargar el mismo archivo de nuevo
+      event.target.value = ""; 
     }
-  };
-  
-  const handleLoadOptionsClick = () => {
-    loadOptionsInputRef.current?.click();
-  };
+  }, [
+    t,
+    onChangeAiKey,
+    onChangeElevenLabsKey,
+    onChangeOpenRouterKey,
+    onChangeSystemPrompt,
+    onChangeKoeiroParam,
+    onChangeBackgroundImage,
+    onChangeCustomErrorMessage,
+    onChangeCharacterName,
+    onChangeSelectedModel,
+    setAppLanguage
+  ]);
 
-  const handleReset = () => {
-    setShowResetDialog(true);
-  };
 
-  const handleConfirmReset = () => {
-    onClickResetAllSettings();
-    setShowResetDialog(false);
-  };
+  // =================================================================
+  // LÓGICA DE CONFIRMACIONES DE ZONA DE PELIGRO
+  // =================================================================
 
-  const handleResetCharacterSettings = () => {
-    triggerConfirmation(() => {
-      onClickResetSystemPrompt();
-      setShowConfirmationDialog(false);
-    }, '¿Estás seguro de que deseas reiniciar la configuración del personaje?');
-  };
+  const handleResetVrm = useCallback(() => {
+    showConfirmation(t.confirmations.resetVrm, onClickResetVrm);
+  }, [t, onClickResetVrm, showConfirmation]);
 
-  const handleResetVrm = () => {
-    triggerConfirmation(() => {
-      onClickResetVrm();
-      setShowConfirmationDialog(false);
-    }, '¿Estás seguro de que deseas poner el VRM por defecto?');
-  };
-  
-  const handleConfirmAction = () => {
-    confirmationAction?.();
-    setShowConfirmationDialog(false);
-  }
+  const handleResetAllSettings = useCallback(() => {
+    showConfirmation(t.confirmations.resetAll, onClickResetAllSettings);
+  }, [t, onClickResetAllSettings, showConfirmation]);
+
+
+  // =================================================================
+  // RENDERIZADO DEL CONTENIDO DE LA PESTAÑA
+  // =================================================================
 
   const renderContent = () => {
-    switch (activeTab) {
+    switch (currentTab) {
       case "general":
         return (
-          <>
-            <div className="my-24">
-              <div className="my-16 typography-20 font-bold">Nombre del personaje</div>
-              <input
-                type="text"
-                placeholder="CHARACTER"
-                value={characterName}
-                onChange={onChangeCharacterName}
-                className="my-4 px-16 py-8 w-full h-40 bg-surface3 hover:bg-surface3-hover rounded-4 text-ellipsis"
-              />
-              <div className="text-sm text-gray-600">
-                Cambia el nombre que aparece en el cuadro de diálogo del personaje.
-              </div>
-            </div>
-            <div className="my-24">
-              <div className="my-16 typography-20 font-bold">Mensaje de error personalizado</div>
-              <input
-                type="text"
-                placeholder="La API de OpenRouter está caída. Inténtalo de nuevo más tarde."
-                value={customErrorMessage}
-                onChange={onChangeCustomErrorMessage}
-                className="my-4 px-16 py-8 w-full h-40 bg-surface3 hover:bg-surface3-hover rounded-4 text-ellipsis"
-              />
-              <div className="text-sm text-gray-600">
-                Este mensaje se mostrará si la API de OpenRouter no está disponible.
-              </div>
-            </div>
-
-            <div className="my-40">
-              <div className="my-16 typography-20 font-bold">Guardado</div>
-              <div className="flex flex-col gap-4">
-                <TextButton onClick={handleSaveOptions}>Guardar archivo de opciones</TextButton>
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={handleLoadOptions}
-                  className="hidden"
-                  id="load-options-file"
-                  ref={loadOptionsInputRef}
-                />
-                <TextButton onClick={handleLoadOptionsClick}>Cargar archivo de opciones</TextButton>
-              </div>
-            </div>
-
-            <div className="my-40">
-              <div className="my-16 typography-20 font-bold text-red-500">Zona de peligro</div>
-              <div className="flex flex-col gap-4">
-                <TextButton onClick={handleReset} color="red">Reiniciar toda la configuración</TextButton>
-              </div>
-              <div className="text-sm text-gray-600 mt-2">
-                Esta acción eliminará todos los datos de la aplicación.
-              </div>
-            </div>
-          </>
+          <SettingsGeneral
+            openAiKey={openAiKey}
+            elevenLabsKey={elevenLabsKey}
+            openRouterKey={openRouterKey}
+            onChangeAiKey={onChangeAiKey}
+            onChangeElevenLabsKey={onChangeElevenLabsKey}
+            onChangeOpenRouterKey={onChangeOpenRouterKey}
+            customErrorMessage={customErrorMessage}
+            onChangeCustomErrorMessage={onChangeCustomErrorMessage}
+            handleSaveOptions={handleSaveOptions}
+            handleLoadOptions={() => optionsFileRef.current?.click()}
+            t={t} // Pasamos los textos traducidos
+            language={language}
+            setAppLanguage={setAppLanguage}
+          />
         );
-      case "api":
+      case "model":
         return (
-          <>
-            <div className="my-24">
-              <div className="my-16 typography-20 font-bold">API de OpenRouter</div>
-              <input
-                type="text"
-                placeholder="Clave de API de OpenRouter"
-                value={openRouterKey}
-                onChange={onChangeOpenRouterKey}
-                className="my-4 px-16 py-8 w-full h-40 bg-surface3 hover:bg-surface3-hover rounded-4 text-ellipsis"
-              />
-              <div>
-                Introduce tu clave de API de OpenRouter para un acceso personalizado. Puedes obtener una clave de API en el&nbsp;
-                <Link url="https://openrouter.ai/" label="sitio web de OpenRouter" />.
-              </div>
-            </div>
-            <div className="my-24">
-              <div className="my-16 typography-20 font-bold">API de ElevenLabs</div>
-              <input
-                type="text"
-                placeholder="Clave de API de ElevenLabs"
-                value={elevenLabsKey}
-                onChange={onChangeElevenLabsKey}
-                className="my-4 px-16 py-8 w-full h-40 bg-surface3 hover:bg-surface3-hover rounded-4 text-ellipsis"
-              />
-              <div>
-                Introduce tu clave de API de ElevenLabs para habilitar la conversión de texto a voz. Puedes obtener una clave de API en el&nbsp;
-                <Link url="https://beta.elevenlabs.io/" label="sitio web de ElevenLabs" />.
-              </div>
-            </div>
-          </>
+          <SettingsModel
+            openRouterKey={openRouterKey}
+            onChangeOpenRouterKey={onChangeOpenRouterKey}
+            onChangeSelectedModel={onChangeSelectedModel}
+            selectedModel={selectedModel}
+            openAiKey={openAiKey}
+            onChangeAiKey={onChangeAiKey}
+            t={t}
+          />
         );
-      case "characterSettings":
+      case "chatSettings":
         return (
-          <>
-            <div className="my-24">
-              <div className="my-16 typography-20 font-bold">Modelo de Lenguaje</div>
-              <select
-                value={selectedModel}
-                onChange={onChangeSelectedModel}
-                className="my-4 px-16 py-8 w-full h-40 bg-surface3 hover:bg-surface3-hover rounded-4 text-ellipsis"
-              >
-                {FREE_MODELS.map((model) => (
-                  <option key={model.value} value={model.value}>{model.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="my-40">
-              <div className="my-8">
-                <div className="my-16 typography-20 font-bold">Configuración del personaje</div>
-                <TextButton onClick={handleResetCharacterSettings}>Restablecer configuración del personaje</TextButton>
-              </div>
-              <textarea
-                value={systemPrompt}
-                onChange={onChangeSystemPrompt}
-                className="px-16 py-8 bg-surface1 hover:bg-surface1-hover h-168 rounded-8 w-full"
-              />
-            </div>
-            {chatLog.length > 0 && (
-              <div className="my-40">
-                <div className="my-8 grid-cols-2">
-                  <div className="my-16 typography-20 font-bold">Historial de conversaciones</div>
-                  <TextButton onClick={onClickResetChatLog}>Restablecer historial de conversaciones</TextButton>
-                </div>
-                <div className="my-8">
-                  {chatLog.map((value, index) => (
-                    <div key={index} className="my-8 grid grid-flow-col grid-cols-[min-content_1fr] gap-x-fixed">
-                      <div className="w-[64px] py-8">{value.role === "assistant" ? "Personaje" : "Tú"}</div>
-                      <input
-                        className="bg-surface1 hover:bg-surface1-hover rounded-8 w-full px-16 py-8"
-                        type="text"
-                        value={value.content}
-                        onChange={(event) => onChangeChatLog(index, event.target.value)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
+          <div className="flex flex-col gap-12">
+            <SettingsCharacter
+              systemPrompt={systemPrompt}
+              onChangeSystemPrompt={onChangeSystemPrompt}
+              onClickResetSystemPrompt={onClickResetSystemPrompt}
+              t={t}
+            />
+            <SettingsChatLog
+              chatLog={chatLog}
+              onChangeChatLog={onChangeChatLog}
+              onClickResetChatLog={onClickResetChatLog}
+              t={t}
+            />
+          </div>
         );
       case "voice":
         return (
-          <>
-            <div className="my-40">
-              <div className="my-16 typography-20 font-bold">Selección de voz</div>
-              {elevenLabsKey === '' && (
-                <p className="text-red-500 mt-2">
-                  ¡No has introducido la API de ElevenLabs, el personaje quedará en silencio! Por favor, obtenga la API, copia y pega desde la pestaña APIs.
-                  
-                </p>
-              )}
-              <div className="my-16">Selecciona entre las voces de ElevenLabs (Tambien incluyen voces que tienes guardadas):</div>
-              <div className="my-8">
-                <select className="h-40 px-8" id="select-dropdown" onChange={onChangeElevenLabsVoice} value={elevenLabsParam.voiceId}>
-                  {elevenLabsVoices.map((voice, index) => (
-                    <option key={index} value={voice.voice_id}>{voice.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </>
+          <div className="flex flex-col gap-12">
+            <SettingsVoice
+              elevenLabsKey={elevenLabsKey}
+              elevenLabsParam={elevenLabsParam}
+              onChangeElevenLabsVoice={onChangeElevenLabsVoice}
+              t={t}
+            />
+            <KoeiroMap
+              koeiroParam={koeiroParam}
+              onChangeKoeiroParam={onChangeKoeiroParam}
+            />
+          </div>
         );
       case "personalization":
         return (
-          <>
-            <div className="my-40">
-              <div className="my-16 typography-20 font-bold">Modelo del personaje</div>
-              <div className="my-8 flex flex-col gap-4">
-                <TextButton onClick={onClickOpenVrmFile}>Abrir VRM</TextButton>
-                <TextButton onClick={handleResetVrm}>VRM por defecto</TextButton>
-              </div>
-            </div>
-            <div className="my-40">
-              <div className="my-16 typography-20 font-bold">Imagen de fondo</div>
-              <div className="my-16">Elige una imagen de fondo personalizada:</div>
-              <div className="my-8 flex flex-col gap-4">
-                <input type="file" accept="image/*" onChange={handleImageUpload} className="my-4" />
-                {backgroundImage && (
-                  <div className="flex flex-col gap-4">
-                    <div className="my-8">
-                      <img src={backgroundImage} alt="Vista previa del fondo" className="max-w-[200px] rounded-4" />
-                    </div>
-                    <div className="my-8">
-                      <TextButton onClick={handleRemoveBackground}>Eliminar fondo</TextButton>
-                    </div>
-                  </div>
-                )}
-                <div className="text-sm text-gray-600">
-                  La imagen de fondo se guardará en tu navegador y se restaurará cuando regreses.
-                </div>
-              </div>
-            </div>
-          </>
+          <SettingsPersonalization
+            backgroundImage={backgroundImage}
+            onChangeBackgroundImage={onChangeBackgroundImage}
+            onClickOpenVrmFile={onClickOpenVrmFile}
+            onClickResetVrm={handleResetVrm} // Usamos el manejador con confirmación
+            viewer={viewer}
+            t={t}
+          />
         );
       case "streaming":
         return (
-          <div className="my-40">
-            <div className="my-16 typography-20 font-bold">Transmisión</div>
-            <p>Aca puedes transmitir en vivo utlizando ChatVRM con Restream, funciona con Twitch, para transmitir en vivo en Twitch y YouTube, necesitas tener el bot de RestreamBot en tu canal de Twitch y tambien activar el modo de Reenvio para que el chat de YouTube se sincronize con Twitch y así tendrá la posibilidad de que el personaje pueda responder el chat de YouTube.</p>
-            <RestreamTokens onTokensUpdate={onTokensUpdate} onChatMessage={onChatMessage} />
-          </div>
+          <SettingsStreaming
+            onTokensUpdate={onTokensUpdate}
+            onChatMessage={onChatMessage}
+            t={t}
+          />
         );
       case "about":
+        return <SettingsAbout t={t} />;
+      case "vrmSettings": // Esta ya no se usa como pestaña principal, pero mantenemos por si acaso
         return (
-          <div className="my-40">
-            <div className="my-16 typography-20 font-bold">Acerca de</div>
-            <div className="my-8">
-              <p>ChatVRM de FrannielMedina</p>
-              <p>v1.0.0</p>
-            </div>
-            <div className="my-8">
-              <p>Versión mejorada basada en <a href="https://github.com/zoan37/ChatVRM" target="_blank" rel="noopener noreferrer">ChatVRM original y de Pixiv</a></p>
-            </div>
-            <div className="my-8">
-              <p>©2025 Franniel Medina</p>
-              <p><a href="https://beacons.ai/frannielmedinatv" target="_blank" rel="noopener noreferrer">beacons.ai/frannielmedinatv</a></p>
-            </div>
-          </div>
+          <SettingsVrm
+            onClickOpenVrmFile={onClickOpenVrmFile}
+            onClickResetVrm={handleResetVrm}
+          />
         );
       default:
-        return null;
+        return <SettingsGeneral
+          openAiKey={openAiKey}
+          elevenLabsKey={elevenLabsKey}
+          openRouterKey={openRouterKey}
+          onChangeAiKey={onChangeAiKey}
+          onChangeElevenLabsKey={onChangeElevenLabsKey}
+          onChangeOpenRouterKey={onChangeOpenRouterKey}
+          customErrorMessage={customErrorMessage}
+          onChangeCustomErrorMessage={onChangeCustomErrorMessage}
+          handleSaveOptions={handleSaveOptions}
+          handleLoadOptions={() => optionsFileRef.current?.click()}
+          t={t}
+          language={language}
+          setAppLanguage={setAppLanguage}
+        />;
     }
   };
 
   return (
     <>
-      <div
-        className={`absolute z-40 w-full h-full bg-white/80 backdrop-blur
-                  transition-transform duration-300 ease-in-out
-                  ${isClosing ? "translate-y-full" : "translate-y-0"}`}
-      >
-        <div className="absolute m-24">
-          <IconButton iconName="24/Close" isProcessing={false} onClick={handleClose} />
+      <div className="absolute z-40 inset-0 bg-black/50 backdrop-blur-sm" onClick={onClickClose}></div>
+      <div className="absolute z-50 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl bg-white rounded-xl shadow-2xl p-6 flex flex-col h-[90vh] max-h-[800px] gap-6">
+        
+        {/* Encabezado y Botón de Cierre */}
+        <div className="flex justify-between items-center pb-2 border-b">
+          <h2 className="typography-20 font-bold">{t.title}</h2>
+          <IconButton iconName="24/Close" isProcessing={false} onClick={onClickClose} />
         </div>
-        <div className="max-h-full overflow-auto">
-          <div className="text-text1 max-w-3xl mx-auto px-24 py-64 ">
-            <div className="my-24 typography-32 font-bold">Configuración</div>
 
-            <div className="flex flex-wrap border-b border-gray-300">
-              {["general", "api", "characterSettings", "voice", "personalization", "streaming", "about"].map(tab => (
-                <button
-                  key={tab}
-                  className={`flex items-center gap-2 py-2 px-4 transition-all duration-300 ease-in-out
-                          ${activeTab === tab ? "border-b-2 border-blue-500 font-bold" : ""}`}
-                  onClick={() => handleTabChange(tab)}
-                >
-                  <span role="img" aria-label={tab}>{tab === "general" ? "⚙️" : tab === "api" ? "🔧" : tab === "characterSettings" ? "👤" : tab === "voice" ? "🎤" : tab === "personalization" ? "🎨" : tab === "streaming" ? "📡" : "ℹ️"}</span> {tab === "characterSettings" ? "Configuración del personaje" : tab === "personalization" ? "Personaje y personalización" : tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </button>
-              ))}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Barra de Navegación (Tabs) */}
+          <nav className="flex flex-col gap-2 w-56 pr-4 border-r overflow-y-auto">
+            <CharacterNameInput
+              characterName={characterName}
+              onChangeCharacterName={onChangeCharacterName}
+              t={t}
+            />
+            {tabItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setCurrentTab(item.id)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                  currentTab === item.id
+                    ? "bg-secondary text-white font-semibold"
+                    : "text-text-primary hover:bg-surface3"
+                }`}
+              >
+                <div className={`w-5 h-5 ${currentTab === item.id ? "text-white" : "text-gray-600"}`} />
+                {item.label}
+              </button>
+            ))}
+            <div className="mt-auto pt-4 border-t">
+              <SettingsDangerZone 
+                onClickResetAllSettings={handleResetAllSettings} 
+                t={t}
+              />
             </div>
+          </nav>
 
-            <div className={`mt-8 transition-opacity duration-300 ease-in-out ${contentVisible ? "opacity-100" : "opacity-0"}`}>
-              {renderContent()}
-            </div>
-          </div>
+          {/* Contenido de la Pestaña */}
+          <main className="flex-1 pl-6 overflow-y-auto">
+            {renderContent()}
+          </main>
         </div>
       </div>
+      
+      {/* Input File Oculto para Cargar Opciones */}
+      <input
+        type="file"
+        ref={optionsFileRef}
+        className="hidden"
+        accept=".json"
+        onChange={handleLoadOptions}
+      />
 
-      {showResetDialog && (
-        <div className="absolute z-50 w-full h-full bg-black/50 flex items-center justify-center">
-          <div className="bg-white p-24 rounded-lg shadow-xl text-center">
-            <div className="typography-24 font-bold text-red-500">¡Atención!</div>
-            <div className="my-16 text-text1">
-              ¿Estás seguro que deseas **reiniciar toda la configuración**? Esto será **irreversible**.
-            </div>
-            <div className="flex justify-center gap-8">
-              <TextButton onClick={handleConfirmReset} color="red">Sí, reiniciar</TextButton>
-              <TextButton onClick={() => setShowResetDialog(false)}>No, cancelar</TextButton>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showConfirmationDialog && (
-        <div className="absolute z-50 w-full h-full bg-black/50 flex items-center justify-center">
-          <div className="bg-white p-24 rounded-lg shadow-xl text-center">
-            <div className="typography-24 font-bold">¿Estás seguro?</div>
-            <div className="my-16 text-text1">
-              {confirmationMessage}
-            </div>
-            <div className="flex justify-center gap-8">
-              <TextButton onClick={handleConfirmAction}>Sí</TextButton>
-              <TextButton onClick={() => setShowConfirmationDialog(false)}>No</TextButton>
-            </div>
+      {/* MODAL DE ALERTA / CONFIRMACIÓN */}
+      {isAlertVisible && (
+        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className={`bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full text-center ${alertType === 'error' ? 'border-l-4 border-red-500' : alertType === 'success' ? 'border-l-4 border-green-500' : 'border-l-4 border-yellow-500'}`}>
+            <h3 className="typography-18 font-bold mb-4">{alertType === 'confirmation' ? t.confirmations.areYouSure : (alertType === 'error' ? 'Error' : 'Success')}</h3>
+            <p className="mb-6" dangerouslySetInnerHTML={{ __html: alertMessage }}></p>
+            
+            {alertType === "confirmation" ? (
+              <div className="flex justify-around">
+                <TextButton onClick={handleAlertClose} color="gray">
+                  {t.noCancel}
+                </TextButton>
+                <TextButton onClick={handleAlertConfirm} color="red">
+                  {t.yesReset}
+                </TextButton>
+              </div>
+            ) : (
+              <TextButton onClick={handleAlertClose}>
+                OK
+              </TextButton>
+            )}
           </div>
         </div>
       )}
     </>
   );
 };
+
+// Nota: Debes asegurarte de que los componentes secundarios (SettingsGeneral, SettingsModel, etc.) 
+// también estén actualizados para recibir y usar la prop `t` (textos traducidos)
+// y las props `language`/`setAppLanguage` si es necesario.
