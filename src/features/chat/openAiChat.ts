@@ -1,5 +1,10 @@
+// src/features/openAiChat.tsx
+
+// NOTA: Si `messages` está en el mismo directorio (features), usa "./messages"
+// Si está en un directorio hermano de features, la ruta original está bien, pero es poco común.
+// La mantengo como la proporcionaste, asumiendo que tienes una estructura de módulos específica.
 import { Message } from "../messages/messages";
-import { getWindowAI } from 'window.ai';
+import { getWindowAI } from 'window.ai'; // No se usa, se puede eliminar si no se implementa.
 
 export async function getChatResponse(messages: Message[], apiKey: string) {
   throw new Error("Not implemented");
@@ -57,6 +62,7 @@ export async function getChatResponseStream(
           console.error("Error from OpenRouter API:", generation.status, errorText);
 
           if (generation.status === 401 || generation.status === 403) {
+            // El mensaje de error fue "La API de OpenRouter no funciona o es incorrecta."
             controller.enqueue("La API de OpenRouter no funciona o es incorrecta.");
           } else {
             // Usa el mensaje personalizado para otros errores del servidor
@@ -75,6 +81,8 @@ export async function getChatResponseStream(
 
               let chunk = new TextDecoder().decode(value);
               let lines = chunk.split('\n');
+              
+              // Filtrar líneas de procesamiento y de finalización
               lines = lines.filter((line) => !line.trim().startsWith(": OPENROUTER PROCESSING"));
               lines = lines.filter((line) => !line.trim().endsWith("data: [DONE]"));
 
@@ -88,7 +96,10 @@ export async function getChatResponseStream(
               try {
                 messages.forEach((message) => {
                   const content = message.choices[0].delta.content;
-                  controller.enqueue(content);
+                  // Solo encolar si hay contenido para evitar chunks vacíos
+                  if (content) { 
+                    controller.enqueue(content);
+                  }
                 });
               } catch (error) {
                 console.error('error processing messages:', messages, error);
