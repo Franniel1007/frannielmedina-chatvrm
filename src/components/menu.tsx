@@ -1,4 +1,4 @@
-// src/components/menu.tsx (Actualizado para i18n y corregido el Type Error)
+// src/components/menu.tsx (Actualizado para i18n y corregido el Hook Condicional)
 
 import { IconButton } from "./iconButton";
 import { Message } from "@/features/messages/messages";
@@ -114,7 +114,17 @@ export const Menu = ({
     [onChangeSystemPrompt]
   );
   
-  // --- FUNCIÓN handleAiKeyChange ELIMINADA (REDUNDANTE) ---
+  // --- FUNCIÓN WRAPPER CORREGIDA: A NIVEL SUPERIOR ---
+  // ESTO RESUELVE EL ERROR "React Hook 'useCallback' is called conditionally"
+  const handleAiKeyWrapper = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      // <Settings /> me pasa el evento, pero yo solo puedo pasar la cadena a mi padre.
+      onChangeAiKey(event.target.value); 
+    },
+    [onChangeAiKey]
+  );
+  // ----------------------------------------------------
+
 
   const handleElevenLabsKeyChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -219,15 +229,8 @@ export const Menu = ({
           koeiroParam={koeiroParam}
           onClickClose={() => setShowSettings(false)}
           
-          // --- WRAPPER CORREGIDO ---
-          // Esta función cumple el contrato de <Settings /> (recibe evento)
-          // y luego llama a la prop de Menu (onChangeAiKey) con la cadena.
-          onChangeAiKey={useCallback(
-            (event: React.ChangeEvent<HTMLInputElement>) => {
-              onChangeAiKey(event.target.value);
-            },
-            [onChangeAiKey]
-          )}
+          // --- USAR LA FUNCIÓN CORREGIDA ---
+          onChangeAiKey={handleAiKeyWrapper} 
           
           onChangeElevenLabsKey={handleElevenLabsKeyChange}
           onChangeElevenLabsVoice={handleElevenLabsVoiceChange}
