@@ -1,3 +1,5 @@
+// src/components/menu.tsx (Actualizado para i18n)
+
 import { IconButton } from "./iconButton";
 import { Message } from "@/features/messages/messages";
 import { ElevenLabsParam } from "@/features/constants/elevenLabsParam";
@@ -8,6 +10,9 @@ import { Settings } from "./settings";
 import { ViewerContext } from "@/features/vrmViewer/viewerContext";
 import { AssistantText } from "./assistantText";
 import { ChatMessage } from "./restreamTokens";
+
+// --- IMPORTAR TIPOS DE IDIOMA ---
+import { LanguageCode } from "@/features/i18n/i18n"; 
 
 type Props = {
   openAiKey: string;
@@ -39,6 +44,10 @@ type Props = {
   onChangeSelectedModel: (event: React.ChangeEvent<HTMLSelectElement>) => void;
   onClickResetAllSettings: () => void;
   onClickResetVrm: () => void;
+  
+  // --- PROPS DE IDIOMA AÑADIDAS ---
+  language: LanguageCode;
+  setAppLanguage: (lang: LanguageCode) => void;
 };
 
 export const Menu = ({
@@ -71,6 +80,10 @@ export const Menu = ({
   onChangeSelectedModel,
   onClickResetAllSettings,
   onClickResetVrm,
+  
+  // --- DESESTRUCTURAR PROPS DE IDIOMA ---
+  language,
+  setAppLanguage,
 }: Props) => {
   const [showSettings, setShowSettings] = useState(false);
   const [showChatLog, setShowChatLog] = useState(false);
@@ -229,6 +242,10 @@ export const Menu = ({
           onChangeSelectedModel={onChangeSelectedModel}
           onClickResetAllSettings={onClickResetAllSettings}
           onClickResetVrm={onClickResetVrm}
+          
+          // --- PROPS DE IDIOMA PASADAS A SETTINGS ---
+          language={language}
+          setAppLanguage={setAppLanguage}
         />
       )}
       {!showChatLog && assistantMessage && (
