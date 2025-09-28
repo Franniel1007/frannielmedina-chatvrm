@@ -1,4 +1,4 @@
-// src/pages/index.tsx (Actualizado para i18n)
+// src/pages/index.tsx
 
 import { useCallback, useContext, useEffect, useState, ChangeEvent } from "react";
 import VrmViewer from "@/components/vrmViewer";
@@ -17,10 +17,8 @@ import { Meta } from "@/components/meta";
 import { ElevenLabsParam, DEFAULT_ELEVEN_LABS_PARAM } from "@/features/constants/elevenLabsParam";
 import { buildUrl } from "@/utils/buildUrl";
 import { websocketService } from "@/services/websocketService";
+import { MessageMiddleOut } from "@/features/messages/messageMiddleOut"; // Aunque no la usemos aquí, la mantenemos por si la necesitas en otro lado
 import { ChatMessage } from "@/components/restreamTokens";
-
-// --- IMPORTAR HOOK DE IDIOMA ---
-import { useLanguage } from "@/features/i18n/i18n"; 
 
 const m_plus_2 = M_PLUS_2({ variable: "--font-m-plus-2", display: "swap", preload: false });
 const montserrat = Montserrat({ variable: "--font-montserrat", display: "swap", subsets: ["latin"] });
@@ -32,10 +30,6 @@ type LLMCallbackResult = {
 
 export default function Home() {
   const { viewer } = useContext(ViewerContext);
-  
-  // --- AÑADIR ESTADO DEL IDIOMA ---
-  const { language, setAppLanguage } = useLanguage();
-  // --------------------------------
 
   const [systemPrompt, setSystemPrompt] = useState(SYSTEM_PROMPT);
   const [openAiKey, setOpenAiKey] = useState("");
@@ -88,7 +82,6 @@ export default function Home() {
         }
       }
     });
-    // Nota: El idioma se carga automáticamente al inicio por useLanguage
   }, []);
 
   useEffect(() => {
@@ -146,15 +139,20 @@ export default function Home() {
       let userMessageContent: string;
       
       if (displayName) {
+          // *** SOLUCIÓN: Normalizar a role: "user" y prefijar el contenido ***
+          // El nombre del usuario se incluye al inicio del mensaje para que el LLM sepa quién habla.
           userMessageContent = `[${displayName}] ${text}`; 
           messageLog.push({ role: "user", content: userMessageContent });
       } else {
+          // Mensaje normal del input: añadir al historial con el rol "user"
           userMessageContent = text;
           messageLog.push({ role: "user", content: userMessageContent });
       }
       
-      setChatLog(messageLog);
+      setChatLog(messageLog); // Actualiza el historial inmediatamente
 
+      // Prepara los mensajes para la IA: simplemente incluye el system prompt y el historial.
+      // MessageMiddleOut ya no es estrictamente necesario, pero lo mantenemos simple.
       const processedMessages = [
           { role: "system", content: systemPrompt }, 
           ...messageLog 
@@ -210,17 +208,12 @@ export default function Home() {
   const handleTokensUpdate = useCallback((tokens: any) => setRestreamTokens(tokens), []);
   
   const handleChatMessage = useCallback((message: ChatMessage) => {
+    // Al recibir el mensaje, pasamos el texto y el nombre de usuario
     handleSendChat(message.text, message.displayName);
   }, [handleSendChat]);
 
   const handleClickResetAllSettings = useCallback(() => {
-    // Mantener la clave de idioma en el localStorage
-    const savedLang = localStorage.getItem('chatvrm_lang');
     localStorage.clear();
-    if (savedLang) {
-      localStorage.setItem('chatvrm_lang', savedLang);
-    }
-
     setChatLog([]);
     setBackgroundImage("");
     setSystemPrompt(SYSTEM_PROMPT);
@@ -253,18 +246,10 @@ export default function Home() {
   return (
     <div className={`${m_plus_2.variable} ${montserrat.variable}`}>
       <Meta />
-      {/* Pasar `setAppLanguage` a Introduction */}
-      <Introduction 
-        openAiKey={openAiKey} 
-        onChangeAiKey={setOpenAiKey} 
-        elevenLabsKey={elevenLabsKey} 
-        onChangeElevenLabsKey={setElevenLabsKey} 
-        language={language} // <-- Propagamos el idioma
-        setAppLanguage={setAppLanguage} // <-- Propagamos el setter
-      />
+      <Introduction openAiKey={openAiKey} onChangeAiKey={setOpenAiKey} elevenLabsKey={elevenLabsKey} onChangeElevenLabsKey={setElevenLabsKey} />
       <VrmViewer />
       <MessageInputContainer isChatProcessing={chatProcessing} onChatProcessStart={handleSendChat} />
-      
+      {/* El resto del componente Menu y otros son iguales */}
       <Menu
         openAiKey={openAiKey}
         elevenLabsKey={elevenLabsKey}
@@ -295,9 +280,6 @@ export default function Home() {
         onChangeSelectedModel={(e: ChangeEvent<HTMLSelectElement>) => { setSelectedModel(e.target.value); localStorage.setItem('selectedModel', e.target.value); }}
         onClickResetAllSettings={handleClickResetAllSettings}
         onClickResetVrm={handleClickResetVrm}
-        // --- PROPS DE IDIOMA AÑADIDAS ---
-        language={language}
-        setAppLanguage={setAppLanguage}
       />
       <GitHubLink />
     </div>
