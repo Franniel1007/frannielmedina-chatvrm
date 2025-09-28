@@ -1,4 +1,4 @@
-// src/components/menu.tsx (Actualizado para i18n)
+// src/components/menu.tsx (Actualizado para i18n y corregido el Type Error)
 
 import { IconButton } from "./iconButton";
 import { Message } from "@/features/messages/messages";
@@ -24,9 +24,8 @@ type Props = {
   assistantMessage: string;
   onChangeSystemPrompt: (systemPrompt: string) => void;
   
-  // ¡CORRECCIÓN AQUÍ!
-  // La función `handleAiKeyChange` recibe un evento, por lo tanto, la prop debe recibir un evento.
-  onChangeAiKey: (event: React.ChangeEvent<HTMLInputElement>) => void; // <-- ¡TIPO DE PROP CORREGIDO!
+  // ¡CORRECCIÓN! Vuelve al tipo que espera el padre (Index.tsx)
+  onChangeAiKey: (key: string) => void; 
   
   onChangeElevenLabsKey: (key: string) => void;
   onChangeChatLog: (index: number, text: string) => void;
@@ -114,16 +113,8 @@ export const Menu = ({
     },
     [onChangeSystemPrompt]
   );
-
-  // ESTA FUNCIÓN ESTABA CAUSANDO EL ERROR DE TIPO CON LA PROP. 
-  // Ahora que la prop acepta un evento, podemos pasar `event` directamente.
-  const handleAiKeyChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      // Pasa el evento al manejador del padre (Index.tsx)
-      onChangeAiKey(event);
-    },
-    [onChangeAiKey]
-  );
+  
+  // --- FUNCIÓN handleAiKeyChange ELIMINADA (REDUNDANTE) ---
 
   const handleElevenLabsKeyChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -228,9 +219,15 @@ export const Menu = ({
           koeiroParam={koeiroParam}
           onClickClose={() => setShowSettings(false)}
           
-          // Ahora pasamos la función que recibe el evento (handleAiKeyChange)
-          // que coincide con la prop que espera Settings (que espera el evento)
-          onChangeAiKey={handleAiKeyChange} 
+          // --- WRAPPER CORREGIDO ---
+          // Esta función cumple el contrato de <Settings /> (recibe evento)
+          // y luego llama a la prop de Menu (onChangeAiKey) con la cadena.
+          onChangeAiKey={useCallback(
+            (event: React.ChangeEvent<HTMLInputElement>) => {
+              onChangeAiKey(event.target.value);
+            },
+            [onChangeAiKey]
+          )}
           
           onChangeElevenLabsKey={handleElevenLabsKeyChange}
           onChangeElevenLabsVoice={handleElevenLabsVoiceChange}
