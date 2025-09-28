@@ -12,12 +12,12 @@ import { getChatResponseStream } from "@/features/chat/openAiChat";
 import { M_PLUS_2, Montserrat } from "next/font/google";
 import { Introduction } from "@/components/introduction";
 import { Menu } from "@/components/menu";
-import { GitHubLink } from "@/components/githubLink";
+// import { GitHubLink } from "@/components/githubLink"; // <-- ¡ELIMINAR ESTA LÍNEA!
 import { Meta } from "@/components/meta";
 import { ElevenLabsParam, DEFAULT_ELEVEN_LABS_PARAM } from "@/features/constants/elevenLabsParam";
 import { buildUrl } from "@/utils/buildUrl";
 import { websocketService } from "@/services/websocketService";
-import { MessageMiddleOut } from "@/features/messages/messageMiddleOut"; // Aunque no la usemos aquí, la mantenemos por si la necesitas en otro lado
+import { MessageMiddleOut } from "@/features/messages/messageMiddleOut";
 import { ChatMessage } from "@/components/restreamTokens";
 
 const m_plus_2 = M_PLUS_2({ variable: "--font-m-plus-2", display: "swap", preload: false });
@@ -152,7 +152,6 @@ export default function Home() {
       setChatLog(messageLog); // Actualiza el historial inmediatamente
 
       // Prepara los mensajes para la IA: simplemente incluye el system prompt y el historial.
-      // MessageMiddleOut ya no es estrictamente necesario, pero lo mantenemos simple.
       const processedMessages = [
           { role: "system", content: systemPrompt }, 
           ...messageLog 
@@ -249,7 +248,6 @@ export default function Home() {
       <Introduction openAiKey={openAiKey} onChangeAiKey={setOpenAiKey} elevenLabsKey={elevenLabsKey} onChangeElevenLabsKey={setElevenLabsKey} />
       <VrmViewer />
       <MessageInputContainer isChatProcessing={chatProcessing} onChatProcessStart={handleSendChat} />
-      {/* El resto del componente Menu y otros son iguales */}
       <Menu
         openAiKey={openAiKey}
         elevenLabsKey={elevenLabsKey}
@@ -281,7 +279,7 @@ export default function Home() {
         onClickResetAllSettings={handleClickResetAllSettings}
         onClickResetVrm={handleClickResetVrm}
       />
-      <GitHubLink />
+      {/* <GitHubLink /> */} {/* <-- ¡ELIMINAR O COMENTAR ESTA LÍNEA! */}
     </div>
   );
 }
